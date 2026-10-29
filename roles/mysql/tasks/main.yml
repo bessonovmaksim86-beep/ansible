@@ -1,0 +1,164 @@
+---
+# Роль mysql: MariaDB (или MySQL) на Debian + БД/пользователь для WordPress.
+- name: MySQL | Include distribution-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family | lower }}.yml"
+
+- name: MySQL | Install database server packages
+  ansible.builtin.apt:
+    name: "{{ mysql_server_packages }}"
+    state: present
+
+- name: MySQL | Install Python client library for community.mysql modules
+  ansible.builtin.apt:
+    name: "{{ mysql_python_client_package }}"
+    state: present
+
+- name: MySQL | Ensure MariaDB is started and enabled
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "{{ mysql_service_name }}"
+    state: started
+    enabled: true
+
+- name: MySQL | Deploy server configuration (bind-address, tuning)
+  ansible.builtin.template:
+    src: 99-ansible-wordpress.cnf.j2
+    dest: "{{ mysql_config_include_dir }}/99-ansible-wordpress.cnf"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: MySQL | Restart mysql
+
+- name: MySQL | Flush handlers (сервер должен перечитать конфиг до настроек root)
+  ansible.builtin.meta: flush_handlers
+
+- name: MySQL | Wait for the server socket
+  ansible.builtin.wait_for:
+    path: "{{ mysql_socket }}"
+    timeout: 60
+
+# Пароль root ставится ровно один раз. Определяем состояние не попыткой входа
+# (при unix_socket-аутентификации вход проходит даже без пароля, и проверка
+# всегда была бы успешной), а чтением системной таблицы СУБД по сокету:
+# у root по unix_socket поле authentication_string пустое.
+- name: MySQL | Read current root authentication state
+  ansible.builtin.command: >
+    {{ mysql_client_bin }} -N -B --socket={{ mysql_socket }}
+    -e "SELECT authentication_string FROM mysql.user WHERE user='{{ mysql_root_user }}' AND host='localhost'"
+  register: mysql_root_state
+  changed_when: false
+  failed_when: false
+
+- name: MySQL | Remember whether root password is already applied
+  ansible.builtin.set_fact:
+    mysql_root_has_password: "{{ (mysql_root_state.stdout | default('')) | trim | length > 1 }}"
+
+- name: MySQL | Set root password and harden accounts (first run)
+  when: not mysql_root_has_password | bool
+  block:
+    # Debian-пакет MariaDB аутентифицирует root по unix_socket. Пароль
+    # добавляется ЧЕРЕЗ OR, чтобы вход `sudo mariadb` по сокету не сломался.
+    - name: MySQL | Apply root password (MariaDB syntax)
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        query:
+          - "ALTER USER '{{ mysql_root_user }}'@'localhost' IDENTIFIED VIA unix_socket OR mysql_native_password USING PASSWORD('{{ mysql_root_password }}')"
+          - "FLUSH PRIVILEGES"
+      no_log: true
+      when: mysql_distro == 'mariadb'
+
+    - name: MySQL | Apply root password (MySQL syntax)
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        query:
+          - "ALTER USER '{{ mysql_root_user }}'@'localhost' IDENTIFIED WITH caching_sha2_password BY '{{ mysql_root_password }}'"
+          - "FLUSH PRIVILEGES"
+      no_log: true
+      when: mysql_distro == 'mysql'
+
+    - name: MySQL | Remove anonymous users
+      community.mysql.mysql_user:
+        name: ""
+        host: "{{ item }}"
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+      loop: ["localhost", "{{ ansible_fqdn }}"]
+      failed_when: false
+
+    - name: MySQL | Remove test database
+      community.mysql.mysql_db:
+        name: test
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+      failed_when: false
+
+- name: MySQL | Ensure root has no account for external hosts
+  community.mysql.mysql_user:
+    name: "{{ mysql_root_user }}"
+    host: "{{ ansible_fqdn }}"
+    state: absent
+    login_unix_socket: "{{ mysql_socket }}"
+  failed_when: false
+
+- name: MySQL | Deploy root credentials file for local mysql utilities
+  ansible.builtin.template:
+    src: client-root-my.cnf.j2
+    dest: /root/.my.cnf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: MySQL | Create application databases
+  community.mysql.mysql_db:
+    name: "{{ item.name }}"
+    encoding: "{{ item.encoding | default('utf8mb4') }}"
+    collation: "{{ item.collation | default('utf8mb4_unicode_ci') }}"
+    state: present
+    login_user: "{{ mysql_root_user }}"
+    login_password: "{{ mysql_root_password }}"
+  loop: "{{ mysql_databases }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: MySQL | Create application users and grant privileges
+  community.mysql.mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    host: "{{ item.host | default('localhost') }}"
+    priv: "{{ item.priv }}"
+    state: present
+    # always - переустанавливать пароль при смене в vault (idempotent: хэш
+    # сверяется с СУБД, изменений не будет, если пароль уже актуален).
+    update_password: always
+    login_user: "{{ mysql_root_user }}"
+    login_password: "{{ mysql_root_password }}"
+  loop: "{{ mysql_users }}"
+  loop_control:
+    label: "{{ item.name }}@{{ item.host | default('localhost') }}"
+  no_log: true
+
+- name: MySQL | Ensure slow query log directory exists
+  ansible.builtin.file:
+    path: /var/log/mysql
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: "0750"
+  when: mysql_slow_query_log_enabled | bool
+
+- name: MySQL | Verify connectivity as application user
+  community.mysql.mysql_query:
+    login_user: "{{ mysql_wordpress_db_user }}"
+    login_password: "{{ mysql_wordpress_db_password }}"
+    login_db: "{{ mysql_wordpress_db_name }}"
+    # current_user - зарезервированное слово MariaDB, алиас назван иначе.
+    query: "SELECT DATABASE() AS connected_db, USER() AS connected_as"
+  register: mysql_app_check
+  changed_when: false
+
+- name: MySQL | Report application user connectivity
+  ansible.builtin.debug:
+    msg: "Подключение к БД '{{ mysql_wordpress_db_name }}' пользователем '{{ mysql_wordpress_db_user }}' — успешно"
+  when: mysql_app_check.rc | default(0) == 0

@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: php_fpm
+  author: Ansible Student
+  description: PHP-FPM с расширениями для WordPress, tuning pool и php.ini (Debian)
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+  galaxy_tags:
+    - php
+    - fpm
+dependencies: []

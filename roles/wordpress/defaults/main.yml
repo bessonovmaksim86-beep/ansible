@@ -1,0 +1,69 @@
+---
+# Переменные роли wordpress по умолчанию.
+# Способ установки: wpcli (wp core download + wp core install) или tarball (только файлы).
+wordpress_method: wpcli
+wordpress_version: latest
+wordpress_locale: en_US
+
+# Каталог установки и права
+wordpress_path: /var/www/wordpress
+wordpress_owner: www-data
+wordpress_group: www-data
+
+# Публичный адрес сайта (переопределяется в host_vars)
+wordpress_site_url: "http://localhost"
+wordpress_title: "Ansible WordPress Site"
+wordpress_admin_user: wpadmin
+wordpress_admin_email: wpadmin@example.local
+# wordpress_admin_password задаётся в vault
+
+# База данных. Значения берутся из переменных роли mysql, но не зависят от
+# неё: плейбуки site.yml/wordpress.yml применяют роль wordpress в отдельном
+# плее, где defaults чужой роли недоступны, а default()-запасной вариант
+# оставляет роль самодостаточной (например, при внешнем управляемом БД-сервере).
+wordpress_db_name: "{{ mysql_wordpress_db_name | default('wordpress') }}"
+wordpress_db_user: "{{ mysql_wordpress_db_user | default('wpuser') }}"
+wordpress_db_password: "{{ mysql_wordpress_db_password | default(mysql_wpuser_password) }}"
+wordpress_db_host: localhost
+wordpress_db_charset: utf8mb4
+wordpress_db_collate: ""
+wordpress_table_prefix: wp_
+
+# wp-config.php
+wordpress_env_type: development      # development | production
+wordpress_debug: false
+wordpress_script_debug: false
+wordpress_save_queries: false
+wordpress_disable_wp_debug_logging: true
+wordpress_force_ssl_admin: false
+wordpress_wp_debug_display: false
+# Дополнительные константы, например { WP_MEMORY_LIMIT: '512M' }
+wordpress_config_extra: {}
+
+# Ключи/соли: пустая строка => сгенерировать автоматически и сохранить локально
+wordpress_salt_dir: "{{ playbook_dir }}/../.ansible-salts"
+wordpress_salt_auth: ""
+wordpress_salt_secure: ""
+wordpress_logged_in_key: ""
+wordpress_nonce_key: ""
+wordpress_regenerate_salts: false
+
+# wp-cli
+wpcli_path: /usr/local/bin/wp
+wpcli_version: "2.11.0"              # latest = стабильный phar из builds/gh-pages
+wordpress_force_reinstall: false
+
+# Настройки после установки
+wordpress_options: {}
+wordpress_permalink_structure: "/%postname%/"
+wordpress_delete_default_plugins: false
+wordpress_delete_akismet: true
+
+# Плагины/темы: список { name, state: present|latest|absent, activate: bool }
+wordpress_plugins: []
+wordpress_themes: []
+
+# wp-cron через системный cron (вместо cron на каждом хите)
+wordpress_cron_enabled: true
+wordpress_cron_interval: "*/5 * * * *"
+wordpress_disable_wp_cron: true

@@ -1,0 +1,525 @@
+===============================================================
+ Проект    : ansible-lamp-wordpress
+ Окружение : wsl   (inventory: inventories/wsl)
+ Сценарий  : playbooks/site.yml
+ Лог       : logs/20261029-034046-wsl-site.log
+ Доп. ключи: <нет> 
+ Ansible   : ansible [core 2.19.14]
+ Запуск    : 2026-10-29 03:40:47 MSK
+===============================================================
+
+playbook: playbooks/site.yml
+wp-wsl | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+[DEPRECATION WARNING]: community.mysql.mysql_query has been deprecated. Use ansible.mysql.mysql_query instead. This feature will be removed from collection 'community.mysql' version 6.0.0.
+[DEPRECATION WARNING]: community.mysql.mysql_user has been deprecated. Use ansible.mysql.mysql_user instead. This feature will be removed from collection 'community.mysql' version 6.0.0.
+[DEPRECATION WARNING]: community.mysql.mysql_db has been deprecated. Use ansible.mysql.mysql_db instead. This feature will be removed from collection 'community.mysql' version 6.0.0.
+
+PLAY [Подготовка Debian-хостов (пакеты, tz, firewall, fail2ban)] ***************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 29 October 2026  03:40:50 +0300 (0:00:00.078)       0:00:00.078 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Update apt cache] **************************************
+Thursday 29 October 2026  03:40:52 +0300 (0:00:01.340)       0:00:01.419 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Install base packages] *********************************
+Thursday 29 October 2026  03:40:54 +0300 (0:00:01.968)       0:00:03.387 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Set timezone in /etc/timezone] *************************
+Thursday 29 October 2026  03:40:57 +0300 (0:00:02.952)       0:00:06.340 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Point /etc/localtime to the selected zone] *************
+Thursday 29 October 2026  03:40:58 +0300 (0:00:01.079)       0:00:07.420 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Reconfigure tzdata] ************************************
+Thursday 29 October 2026  03:40:58 +0300 (0:00:00.373)       0:00:07.793 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Generate locale] ***************************************
+Thursday 29 October 2026  03:40:58 +0300 (0:00:00.026)       0:00:07.819 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Set hostname] ******************************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.653)       0:00:08.473 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Ensure systemd-timesyncd is running] *******************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.024)       0:00:08.497 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Install unattended-upgrades] ***************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.021)       0:00:08.518 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Deploy unattended-upgrades config] *********************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.022)       0:00:08.540 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Install ufw] *******************************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.023)       0:00:08.564 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Allow SSH explicitly before enabling ufw] **************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.026)       0:00:08.590 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Open required service ports] ***************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.023)       0:00:08.614 ****** 
+skipping: [wp-wsl] => (item=22/tcp) 
+skipping: [wp-wsl] => (item=80/tcp) 
+skipping: [wp-wsl] => (item=443/tcp) 
+skipping: [wp-wsl]
+
+TASK [common : Common | Enable and deny-by-default ufw] ************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.033)       0:00:08.648 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Install fail2ban] **************************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.021)       0:00:08.669 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Enable fail2ban service] *******************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.020)       0:00:08.690 ****** 
+skipping: [wp-wsl]
+
+TASK [common : Common | Ensure /var/www exists] ********************************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.020)       0:00:08.711 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Ensure PHP-family group www-data exists] ***************
+Thursday 29 October 2026  03:40:59 +0300 (0:00:00.333)       0:00:09.044 ****** 
+ok: [wp-wsl]
+
+TASK [common : Common | Flush handlers before next role] ***********************
+Thursday 29 October 2026  03:41:00 +0300 (0:00:00.577)       0:00:09.622 ****** 
+
+PLAY [Устанавливаем веб-стек LAMP (Apache, MariaDB, PHP-FPM)] ******************
+
+TASK [mysql : MySQL | Include distribution-specific variables] *****************
+Thursday 29 October 2026  03:41:00 +0300 (0:00:00.030)       0:00:09.652 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Install database server packages] ************************
+Thursday 29 October 2026  03:41:00 +0300 (0:00:00.033)       0:00:09.686 ****** 
+changed: [wp-wsl]
+
+TASK [mysql : MySQL | Install Python client library for community.mysql modules] ***
+Thursday 29 October 2026  03:41:18 +0300 (0:00:17.563)       0:00:27.250 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Ensure MariaDB is started and enabled] *******************
+Thursday 29 October 2026  03:41:20 +0300 (0:00:02.644)       0:00:29.894 ****** 
+changed: [wp-wsl]
+
+TASK [mysql : MySQL | Deploy server configuration (bind-address, tuning)] ******
+Thursday 29 October 2026  03:41:22 +0300 (0:00:01.761)       0:00:31.656 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Flush handlers (сервер должен перечитать конфиг до настроек root)] ***
+Thursday 29 October 2026  03:41:23 +0300 (0:00:00.729)       0:00:32.385 ****** 
+
+TASK [mysql : MySQL | Wait for the server socket] ******************************
+Thursday 29 October 2026  03:41:23 +0300 (0:00:00.004)       0:00:32.390 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Read current root authentication state] ******************
+Thursday 29 October 2026  03:41:23 +0300 (0:00:00.612)       0:00:33.002 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Remember whether root password is already applied] *******
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.879)       0:00:33.882 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Apply root password (MariaDB syntax)] ********************
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.035)       0:00:33.918 ****** 
+skipping: [wp-wsl]
+
+TASK [mysql : MySQL | Apply root password (MySQL syntax)] **********************
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.023)       0:00:33.941 ****** 
+skipping: [wp-wsl]
+
+TASK [mysql : MySQL | Remove anonymous users] **********************************
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.025)       0:00:33.967 ****** 
+skipping: [wp-wsl] => (item=localhost) 
+skipping: [wp-wsl] => (item=WIN-D1P09T8OAKO.localdomain) 
+skipping: [wp-wsl]
+
+TASK [mysql : MySQL | Remove test database] ************************************
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.033)       0:00:34.001 ****** 
+skipping: [wp-wsl]
+
+TASK [mysql : MySQL | Ensure root has no account for external hosts] ***********
+Thursday 29 October 2026  03:41:24 +0300 (0:00:00.024)       0:00:34.026 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Deploy root credentials file for local mysql utilities] ***
+Thursday 29 October 2026  03:41:25 +0300 (0:00:00.654)       0:00:34.680 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Create application databases] ****************************
+Thursday 29 October 2026  03:41:26 +0300 (0:00:00.753)       0:00:35.433 ****** 
+[WARNING]: MariaDB has been detected: its support will be dropped in 6.0.0. For MariaDB automation, please use the ansible.mariadb collection instead.
+changed: [wp-wsl] => (item=wordpress)
+
+TASK [mysql : MySQL | Create application users and grant privileges] ***********
+Thursday 29 October 2026  03:41:26 +0300 (0:00:00.614)       0:00:36.048 ****** 
+changed: [wp-wsl] => (item=(censored due to no_log))
+
+TASK [mysql : MySQL | Ensure slow query log directory exists] ******************
+Thursday 29 October 2026  03:41:27 +0300 (0:00:00.405)       0:00:36.453 ****** 
+changed: [wp-wsl]
+
+TASK [mysql : MySQL | Verify connectivity as application user] *****************
+Thursday 29 October 2026  03:41:27 +0300 (0:00:00.342)       0:00:36.795 ****** 
+ok: [wp-wsl]
+
+TASK [mysql : MySQL | Report application user connectivity] ********************
+Thursday 29 October 2026  03:41:28 +0300 (0:00:00.580)       0:00:37.376 ****** 
+ok: [wp-wsl] => {
+    "msg": "Подключение к БД 'wordpress' пользователем 'wpuser' — успешно"
+}
+
+TASK [php_fpm : PHP-FPM | Install prerequisites for third-party repo] **********
+Thursday 29 October 2026  03:41:28 +0300 (0:00:00.032)       0:00:37.409 ****** 
+skipping: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Add sury.org repository (deb822, signed-by)] *********
+Thursday 29 October 2026  03:41:28 +0300 (0:00:00.024)       0:00:37.433 ****** 
+skipping: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Flush handlers to refresh cache after adding repo] ***
+Thursday 29 October 2026  03:41:28 +0300 (0:00:00.022)       0:00:37.456 ****** 
+skipping: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Install PHP-FPM and WordPress-required extensions] ***
+Thursday 29 October 2026  03:41:28 +0300 (0:00:00.015)       0:00:37.471 ****** 
+changed: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Ensure run directory for socket exists] **************
+Thursday 29 October 2026  03:41:50 +0300 (0:00:22.250)       0:00:59.722 ****** 
+ok: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Deploy custom php.ini overrides (FPM)] ***************
+Thursday 29 October 2026  03:41:50 +0300 (0:00:00.339)       0:01:00.062 ****** 
+ok: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Deploy www pool configuration] ***********************
+Thursday 29 October 2026  03:41:51 +0300 (0:00:00.684)       0:01:00.746 ****** 
+changed: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Validate FPM configuration] **************************
+Thursday 29 October 2026  03:41:52 +0300 (0:00:01.209)       0:01:01.956 ****** 
+ok: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Ensure php-fpm service is started and enabled] *******
+Thursday 29 October 2026  03:41:53 +0300 (0:00:00.416)       0:01:02.372 ****** 
+changed: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Ensure FPM socket exists with web-server group] ******
+Thursday 29 October 2026  03:41:53 +0300 (0:00:00.489)       0:01:02.862 ****** 
+ok: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Report PHP version] **********************************
+Thursday 29 October 2026  03:41:54 +0300 (0:00:00.362)       0:01:03.224 ****** 
+ok: [wp-wsl]
+
+TASK [php_fpm : PHP-FPM | Show installed PHP version] **************************
+Thursday 29 October 2026  03:41:54 +0300 (0:00:00.442)       0:01:03.666 ****** 
+ok: [wp-wsl] => {
+    "msg": "Установлен PHP 8.2.35 (FPM 8.2), socket: /run/php/php8.2-fpm.sock"
+}
+
+TASK [apache : Apache | Install packages] **************************************
+Thursday 29 October 2026  03:41:54 +0300 (0:00:00.030)       0:01:03.697 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Disable default MPM prefork (needed for event + php-fpm)] ***
+Thursday 29 October 2026  03:42:04 +0300 (0:00:09.966)       0:01:13.663 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Enable MPM event] **************************************
+Thursday 29 October 2026  03:42:05 +0300 (0:00:00.557)       0:01:14.220 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Enable required modules] *******************************
+Thursday 29 October 2026  03:42:05 +0300 (0:00:00.346)       0:01:14.567 ****** 
+changed: [wp-wsl] => (item=rewrite.load)
+changed: [wp-wsl] => (item=ssl.load)
+changed: [wp-wsl] => (item=headers.load)
+changed: [wp-wsl] => (item=expires.load)
+ok: [wp-wsl] => (item=deflate.load)
+changed: [wp-wsl] => (item=proxy.load)
+changed: [wp-wsl] => (item=proxy_fcgi.load)
+
+TASK [apache : Apache | Set ServerTokens/ServerSignature hardening] ************
+Thursday 29 October 2026  03:42:08 +0300 (0:00:02.882)       0:01:17.449 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Enable hardening config] *******************************
+Thursday 29 October 2026  03:42:08 +0300 (0:00:00.630)       0:01:18.080 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Set global ServerName and ServerAdmin] *****************
+Thursday 29 October 2026  03:42:09 +0300 (0:00:00.407)       0:01:18.488 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Enable global ServerName config] ***********************
+Thursday 29 October 2026  03:42:09 +0300 (0:00:00.688)       0:01:19.176 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Ensure document root exists with correct ownership] ****
+Thursday 29 October 2026  03:42:10 +0300 (0:00:00.365)       0:01:19.541 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Generate self-signed certificate for HTTPS (dev/test)] ***
+Thursday 29 October 2026  03:42:10 +0300 (0:00:00.345)       0:01:19.887 ****** 
+skipping: [wp-wsl]
+
+TASK [apache : Apache | Set certificate and key permissions] *******************
+Thursday 29 October 2026  03:42:10 +0300 (0:00:00.016)       0:01:19.903 ****** 
+skipping: [wp-wsl] => (item=/etc/ssl/certs/wordpress-selfsigned.crt) 
+skipping: [wp-wsl] => (item=/etc/ssl/private/wordpress-selfsigned.key) 
+skipping: [wp-wsl]
+
+TASK [apache : Apache | Deploy WordPress virtual host] *************************
+Thursday 29 October 2026  03:42:10 +0300 (0:00:00.028)       0:01:19.932 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Enable WordPress virtual host] *************************
+Thursday 29 October 2026  03:42:11 +0300 (0:00:00.648)       0:01:20.581 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Disable default site] **********************************
+Thursday 29 October 2026  03:42:11 +0300 (0:00:00.389)       0:01:20.970 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Test configuration before starting] ********************
+Thursday 29 October 2026  03:42:12 +0300 (0:00:00.361)       0:01:21.332 ****** 
+ok: [wp-wsl]
+
+TASK [apache : Apache | Ensure apache2 is started and enabled] *****************
+Thursday 29 October 2026  03:42:12 +0300 (0:00:00.346)       0:01:21.679 ****** 
+changed: [wp-wsl]
+
+TASK [apache : Apache | Ensure apache2 is reachable on localhost] **************
+Thursday 29 October 2026  03:42:13 +0300 (0:00:01.425)       0:01:23.104 ****** 
+ok: [wp-wsl]
+
+RUNNING HANDLER [php_fpm : PHP-FPM | Restart php-fpm] **************************
+Thursday 29 October 2026  03:42:14 +0300 (0:00:00.734)       0:01:23.838 ****** 
+changed: [wp-wsl]
+
+RUNNING HANDLER [apache : Apache | Reload apache] ******************************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:02.466)       0:01:26.304 ****** 
+changed: [wp-wsl]
+
+PLAY [Разворачиваем WordPress] *************************************************
+
+TASK [wordpress : WordPress | Validate installation method] ********************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:00.446)       0:01:26.751 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Ensure document root exists] *********************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:00.035)       0:01:26.787 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Install wp-cli on the host] **********************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:00.338)       0:01:27.125 ****** 
+included: /home/admin/ansible-lamp-wordpress/roles/wordpress/tasks/wpcli.yml for wp-wsl
+
+TASK [wordpress : WordPress | Resolve wp-cli phar URL] *************************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:00.027)       0:01:27.153 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Download wp-cli phar] ****************************
+Thursday 29 October 2026  03:42:17 +0300 (0:00:00.022)       0:01:27.176 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Verify wp-cli is executable] *********************
+Thursday 29 October 2026  03:42:19 +0300 (0:00:01.209)       0:01:28.386 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Download WordPress core] *************************
+Thursday 29 October 2026  03:42:19 +0300 (0:00:00.528)       0:01:28.914 ****** 
+included: /home/admin/ansible-lamp-wordpress/roles/wordpress/tasks/install.yml for wp-wsl
+
+TASK [wordpress : WordPress | Check whether core is already downloaded] ********
+Thursday 29 October 2026  03:42:19 +0300 (0:00:00.035)       0:01:28.950 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Download core via wp-cli] ************************
+Thursday 29 October 2026  03:42:20 +0300 (0:00:00.318)       0:01:29.268 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Resolve archive URL for tarball method] **********
+Thursday 29 October 2026  03:42:26 +0300 (0:00:06.331)       0:01:35.600 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Download WordPress archive] **********************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.016)       0:01:35.616 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Unpack archive into document root] ***************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.056)       0:01:35.672 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Remove temporary archive] ************************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.018)       0:01:35.691 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Prepare secret keys and salts] *******************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.017)       0:01:35.708 ****** 
+included: /home/admin/ansible-lamp-wordpress/roles/wordpress/tasks/salts.yml for wp-wsl
+
+TASK [wordpress : WordPress | Ensure local directory for generated keys exists (control node)] ***
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.024)       0:01:35.733 ****** 
+ok: [wp-wsl -> localhost]
+
+TASK [wordpress : WordPress | Build keys and salts] ****************************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.328)       0:01:36.062 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Deploy wp-config.php] ****************************
+Thursday 29 October 2026  03:42:26 +0300 (0:00:00.063)       0:01:36.125 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Deploy .htaccess (permalinks)] *******************
+Thursday 29 October 2026  03:42:27 +0300 (0:00:00.674)       0:01:36.799 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Ensure writable directories] *********************
+Thursday 29 October 2026  03:42:28 +0300 (0:00:00.624)       0:01:37.424 ****** 
+changed: [wp-wsl] => (item=/var/www/wordpress/wp-content/uploads)
+changed: [wp-wsl] => (item=/var/www/wordpress/wp-content/cache)
+changed: [wp-wsl] => (item=/var/www/wordpress/wp-content/upgrade)
+
+TASK [wordpress : WordPress | Apply ownership recursively] *********************
+Thursday 29 October 2026  03:42:29 +0300 (0:00:01.074)       0:01:38.499 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Keep wp-config.php restricted] *******************
+Thursday 29 October 2026  03:42:29 +0300 (0:00:00.660)       0:01:39.160 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Run the installer (wp core install)] *************
+Thursday 29 October 2026  03:42:30 +0300 (0:00:00.338)       0:01:39.498 ****** 
+included: /home/admin/ansible-lamp-wordpress/roles/wordpress/tasks/configure.yml for wp-wsl
+
+TASK [wordpress : WordPress | Check if the site is already installed] **********
+Thursday 29 October 2026  03:42:30 +0300 (0:00:00.038)       0:01:39.537 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Run wp core install] *****************************
+Thursday 29 October 2026  03:42:31 +0300 (0:00:00.876)       0:01:40.413 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Apply site options (wp option update)] ***********
+Thursday 29 October 2026  03:42:33 +0300 (0:00:02.315)       0:01:42.728 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Read current permalink structure] ****************
+Thursday 29 October 2026  03:42:33 +0300 (0:00:00.015)       0:01:42.744 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Set permalink structure] *************************
+Thursday 29 October 2026  03:42:34 +0300 (0:00:00.844)       0:01:43.589 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Flush rewrite rules] *****************************
+Thursday 29 October 2026  03:42:35 +0300 (0:00:01.215)       0:01:44.804 ****** 
+changed: [wp-wsl]
+
+TASK [wordpress : WordPress | Remove default content (optional)] ***************
+Thursday 29 October 2026  03:42:36 +0300 (0:00:00.785)       0:01:45.590 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Manage plugins and themes] ***********************
+Thursday 29 October 2026  03:42:36 +0300 (0:00:00.016)       0:01:45.607 ****** 
+skipping: [wp-wsl]
+
+TASK [wordpress : WordPress | Configure system cron for wp-cron] ***************
+Thursday 29 October 2026  03:42:36 +0300 (0:00:00.020)       0:01:45.627 ****** 
+included: /home/admin/ansible-lamp-wordpress/roles/wordpress/tasks/cron.yml for wp-wsl
+
+TASK [wordpress : WordPress | Ensure cron package is present] ******************
+Thursday 29 October 2026  03:42:36 +0300 (0:00:00.030)       0:01:45.657 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Install crontab entry for wp-cron] ***************
+Thursday 29 October 2026  03:42:39 +0300 (0:00:02.569)       0:01:48.227 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | HTTP smoke test (with the host itself)] **********
+Thursday 29 October 2026  03:42:39 +0300 (0:00:00.610)       0:01:48.837 ****** 
+ok: [wp-wsl]
+
+TASK [wordpress : WordPress | Deployment summary] ******************************
+Thursday 29 October 2026  03:42:40 +0300 (0:00:00.542)       0:01:49.379 ****** 
+ok: [wp-wsl] => {
+    "msg": [
+        "Каталог сайта: /var/www/wordpress",
+        "URL: http://localhost",
+        "Логин администратора: wpadmin (пароль в ansible-vault)",
+        "Метод установки: wpcli, версия: latest"
+    ]
+}
+
+RUNNING HANDLER [wordpress : WordPress | Reload php-fpm] ***********************
+Thursday 29 October 2026  03:42:40 +0300 (0:00:00.032)       0:01:49.412 ****** 
+changed: [wp-wsl]
+
+PLAY RECAP *********************************************************************
+wp-wsl                     : ok=78   changed=26   unreachable=0    failed=0    skipped=26   rescued=0    ignored=0   
+
+
+TASKS RECAP ********************************************************************
+Thursday 29 October 2026  03:42:40 +0300 (0:00:00.334)       0:01:49.746 ****** 
+=============================================================================== 
+php_fpm : PHP-FPM | Install PHP-FPM and WordPress-required extensions -- 22.25s
+mysql : MySQL | Install database server packages ----------------------- 17.56s
+apache : Apache | Install packages -------------------------------------- 9.97s
+wordpress : WordPress | Download core via wp-cli ------------------------ 6.33s
+common : Common | Install base packages --------------------------------- 2.95s
+apache : Apache | Enable required modules ------------------------------- 2.88s
+mysql : MySQL | Install Python client library for community.mysql modules --- 2.64s
+wordpress : WordPress | Ensure cron package is present ------------------ 2.57s
+php_fpm : PHP-FPM | Restart php-fpm ------------------------------------- 2.47s
+wordpress : WordPress | Run wp core install ----------------------------- 2.32s
+common : Common | Update apt cache -------------------------------------- 1.97s
+mysql : MySQL | Ensure MariaDB is started and enabled ------------------- 1.76s
+apache : Apache | Ensure apache2 is started and enabled ----------------- 1.42s
+Gathering Facts --------------------------------------------------------- 1.34s
+wordpress : WordPress | Set permalink structure ------------------------- 1.22s
+php_fpm : PHP-FPM | Deploy www pool configuration ----------------------- 1.21s
+wordpress : WordPress | Download wp-cli phar ---------------------------- 1.21s
+common : Common | Set timezone in /etc/timezone ------------------------- 1.08s
+wordpress : WordPress | Ensure writable directories --------------------- 1.07s
+mysql : MySQL | Read current root authentication state ------------------ 0.88s
+
+PLAYBOOK RECAP *****************************************************************
+Playbook run took 0 days, 0 hours, 1 minutes, 49 seconds
+
+
+==================== SERVICE STATE ============================
+wp-wsl | CHANGED | rc=0 >>
+apache2          active
+php8.2-fpm       active
+mariadb          active
+--- versions ---
+Server version: Apache/2.4.68 (Debian)
+PHP 8.2.35 (cli) (built: Oct 21 2026 06:29:51) (NTS)
+mariadb  Ver 15.1 Distrib 10.11.19-MariaDB, for debian-linux-gnu (x86_64) using  EditLine wrapper
+--- wordpress ---
+7.1.4
+==================== END ======================================
+Код возврата ansible-playbook: 0
+Команда: ansible-playbook -i inventories/wsl playbooks/site.yml  

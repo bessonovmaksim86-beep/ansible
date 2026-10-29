@@ -1,0 +1,17 @@
+---
+# Вариант "настоящего" SSH-подключения из Windows в WSL2.
+# WSL2 имеет собственный IP в NAT-подсети, он меняется после перезагрузки:
+#   WSL_IP=$(wsl.exe -d Debian -u root -- hostname -I | tr -d '\r' | awk '{print $1}')
+# Затем:
+#   ansible -i inventories/wsl/hosts-ssh.yml lamp -m ping \
+#     -e "ansible_host=$WSL_IP"
+webservers:
+  hosts:
+    wp-wsl:
+      ansible_host: 127.0.0.1
+      ansible_port: 2222
+dbservers:
+  hosts:
+    wp-wsl:
+      ansible_host: 127.0.0.1
+      ansible_port: 2222

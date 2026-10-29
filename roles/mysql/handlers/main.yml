@@ -1,0 +1,13 @@
+---
+- name: MySQL | Restart mysql
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "{{ mysql_service_name }}"
+    state: restarted
+
+- name: MySQL | Reload mysql
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "{{ mysql_service_name }}"
+    state: reloaded
+  failed_when: false

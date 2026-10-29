@@ -1,0 +1,12 @@
+---
+- name: WordPress | Reload php-fpm
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "php{{ php_fpm_version | default('8.2') }}-fpm"
+    state: reloaded
+
+- name: WordPress | Reload apache
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: apache2
+    state: reloaded

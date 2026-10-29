@@ -1,0 +1,35 @@
+# --- Секреты ---
+# Прод-секреты в git не попадают (в репозиторий кладётся только .example,
+# либо уже зашифрованный ansible-vault файл с $ANSIBLE_VAULT в начале).
+inventories/prod/group_vars/all/vault.yml
+!inventories/prod/group_vars/all/vault.example.yml
+
+# Dev- и WSL-vault намеренно версионируются: содержат только локальные
+# тестовые пароли и нужны для воспроизводимого прогона ментором.
+
+# Сгенерированные соли wp-config.php (создаёт управляющий узел).
+.ansible-salts/
+*.retry
+
+# --- Логи ---
+# Сырые прогоны игнорируются; для передачи на проверку лог копируют как
+# *.log.example либо добавляют принудительно: git add -f logs/<файл>.log
+logs/*.log
+!logs/.gitkeep
+!logs/*.example
+
+# --- Артефакты Ansible ---
+.ansible_facts/
+collections/ansible_collections/
+
+# --- Служебное ---
+__pycache__/
+*.pyc
+*.swp
+.DS_Store
+.vagrant/
+
+# --- Maven-часть репозитория (к Ansible не относится) ---
+target/
+.idea/
+.mvn/

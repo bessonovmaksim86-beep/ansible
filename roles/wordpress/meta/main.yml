@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: wordpress
+  author: Ansible Student
+  description: Развёртывание WordPress (wp-cli или tarball) поверх готового LAMP на Debian
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+  galaxy_tags:
+    - cms
+    - wordpress
+    - web
+# Apache/PHP/MariaDB ставятся отдельными ролями в плейбуке site.yml,
+# здесь зависимость только логическая (роль требует уже готовые сервисы).
+dependencies: []

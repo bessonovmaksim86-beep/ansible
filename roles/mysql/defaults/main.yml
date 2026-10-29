@@ -1,0 +1,32 @@
+---
+# Параметры сервера БД по умолчанию.
+mysql_distro: mariadb           # mariadb | mysql
+mysql_root_user: root
+mysql_port: 3306
+mysql_bind_address: 127.0.0.1
+mysql_datadir: /var/lib/mysql
+
+mysql_innodb_buffer_pool_size: 256M
+mysql_innodb_log_file_size: 64M
+mysql_max_connections: 200
+mysql_character_set_server: utf8mb4
+mysql_collation_server: utf8mb4_unicode_ci
+
+mysql_slow_query_log_enabled: true
+mysql_slow_query_time: 2
+
+# Пароли берутся из vault; здесь только имя/хост приложения.
+mysql_wordpress_db_name: wordpress
+mysql_wordpress_db_user: wpuser
+mysql_wordpress_db_password: "{{ mysql_wpuser_password }}"
+
+mysql_databases:
+  - name: "{{ mysql_wordpress_db_name }}"
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+
+mysql_users:
+  - name: "{{ mysql_wordpress_db_user }}"
+    host: localhost
+    password: "{{ mysql_wordpress_db_password }}"
+    priv: "{{ mysql_wordpress_db_name }}.*:ALL,GRANT"

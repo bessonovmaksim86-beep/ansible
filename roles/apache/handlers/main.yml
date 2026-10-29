@@ -1,0 +1,12 @@
+---
+- name: Apache | Reload apache
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: apache2
+    state: reloaded
+
+- name: Apache | Restart apache
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: apache2
+    state: restarted

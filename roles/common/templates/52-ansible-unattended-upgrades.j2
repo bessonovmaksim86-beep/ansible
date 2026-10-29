@@ -1,0 +1,13 @@
+// Файл управляется Ansible (роль common). Ручные изменения будут перезаписаны.
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+};
+Unattended-Upgrade::Package-Blacklist {
+};
+Unattended-Upgrade::DevRelease "false";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+Acquire::Periodic::Update-Package-Lists "1";
+Acquire::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::Unattended-Upgrade "1";

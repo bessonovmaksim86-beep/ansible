@@ -1,0 +1,10 @@
+---
+# Переменные конкретного хоста prod.
+wordpress_env_type: production
+apache_server_name: example.com
+wordpress_site_url: "https://example.com"
+apache_enable_ssl: true
+php_fpm_pm: dynamic
+php_fpm_pm_max_children: 50
+mysql_innodb_buffer_pool_size: 512M
+ansible_python_interpreter: /usr/bin/python3

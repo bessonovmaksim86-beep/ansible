@@ -1,0 +1,16 @@
+---
+# Переменные для Debian/Ubuntu (имеют приоритет над defaults роли).
+mysql_server_packages:
+  - "{{ mysql_distro }}-server"
+  - "{{ mysql_distro }}-client"
+
+# Python-библиотека, требуемая модулям community.mysql
+mysql_python_client_package: python3-pymysql
+
+mysql_service_name: "{{ 'mariadb' if mysql_distro == 'mariadb' else 'mysql' }}"
+mysql_client_bin: "{{ 'mariadb' if mysql_distro == 'mariadb' else 'mysql' }}"
+mysql_socket: /run/mysqld/mysqld.sock
+# На Debian оба пакета (mysql-server и mariadb-server) читают !includedir /etc/mysql/conf.d/
+mysql_config_include_dir: /etc/mysql/conf.d
+mysql_datadir_owner: mysql
+mysql_datadir_group: mysql

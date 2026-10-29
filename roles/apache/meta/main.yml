@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: apache
+  author: Ansible Student
+  description: Apache 2.4 (mpm_event) + vhost для WordPress с проксированием PHP на php-fpm
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+  galaxy_tags:
+    - web
+    - apache
+    - httpd
+dependencies: []

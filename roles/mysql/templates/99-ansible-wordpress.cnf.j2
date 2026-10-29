@@ -1,0 +1,31 @@
+# Managed by Ansible (role: mysql) — конфигурация сервера БД для WordPress
+[mysqld]
+bind-address            = {{ mysql_bind_address }}
+port                    = {{ mysql_port }}
+datadir                 = {{ mysql_datadir }}
+socket                  = {{ mysql_socket }}
+
+character-set-server    = {{ mysql_character_set_server }}
+collation-server        = {{ mysql_collation_server }}
+init-connect            = 'SET NAMES utf8mb4'
+
+max_connections         = {{ mysql_max_connections }}
+max_allowed_packet      = 64M
+
+innodb_buffer_pool_size = {{ mysql_innodb_buffer_pool_size }}
+innodb_log_file_size    = {{ mysql_innodb_log_file_size }}
+innodb_file_per_table   = 1
+innodb_flush_log_at_trx_commit = 1
+
+skip-name-resolve
+{% if mysql_slow_query_log_enabled | bool %}
+slow_query_log          = 1
+slow_query_log_file     = /var/log/mysql/slow.log
+long_query_time         = {{ mysql_slow_query_time }}
+{% else %}
+slow_query_log          = 0
+{% endif %}
+
+[client]
+default-character-set   = utf8mb4
+socket                  = {{ mysql_socket }}

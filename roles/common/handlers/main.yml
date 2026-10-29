@@ -1,0 +1,13 @@
+---
+- name: Common | Restart unattended-upgrades
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: unattended-upgrades
+    state: restarted
+  failed_when: false
+
+- name: Common | Restart fail2ban
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: fail2ban
+    state: restarted

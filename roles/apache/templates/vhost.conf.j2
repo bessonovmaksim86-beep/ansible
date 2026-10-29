@@ -1,0 +1,67 @@
+{# Managed by Ansible - role: apache #}
+<VirtualHost *:{{ apache_vhost_port }}>
+    ServerName {{ apache_server_name }}
+    ServerAdmin {{ apache_server_admin }}
+    DocumentRoot {{ apache_document_root }}
+
+    <Directory {{ apache_document_root }}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride {{ apache_allow_override }}
+        Require all granted
+    </Directory>
+
+    # PHP обрабатывается через php-fpm (модуль mpm_event + proxy_fcgi)
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:{{ php_fpm_listen }}|fcgi://{{ apache_server_name }}"
+    </FilesMatch>
+
+    # Запрет доступа к служебным файлам WordPress
+    <FilesMatch "^(wp-config\.php|readme\.html|license\.txt|\.htaccess|\.git.*)$">
+        Require all denied
+    </FilesMatch>
+
+    DirectoryIndex index.php index.html
+
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ apache_vhost_filename | regex_replace('\.conf$', '') }}-error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ apache_vhost_filename | regex_replace('\.conf$', '') }}-access.log combined
+{% if apache_extra_directives %}
+    {{ apache_extra_directives | indent(4, true) }}
+{% endif %}
+</VirtualHost>
+{% if apache_enable_ssl %}
+
+<VirtualHost *:443>
+    ServerName {{ apache_server_name }}
+    ServerAdmin {{ apache_server_admin }}
+    DocumentRoot {{ apache_document_root }}
+
+    SSLEngine on
+    SSLCertificateFile      {{ apache_ssl_cert }}
+    SSLCertificateKeyFile   {{ apache_ssl_key }}
+
+    <Directory {{ apache_document_root }}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride {{ apache_allow_override }}
+        Require all granted
+    </Directory>
+
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:{{ php_fpm_listen }}|fcgi://{{ apache_server_name }}"
+    </FilesMatch>
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ apache_vhost_filename | regex_replace('\.conf$', '') }}-ssl-error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ apache_vhost_filename | regex_replace('\.conf$', '') }}-ssl-access.log combined
+</VirtualHost>
+{% endif %}

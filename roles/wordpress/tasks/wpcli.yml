@@ -1,0 +1,23 @@
+---
+# Установка wp-cli на хост (оффициальный phar).
+- name: WordPress | Resolve wp-cli phar URL
+  ansible.builtin.set_fact:
+    wpcli_download_url: >-
+      {{ 'https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar'
+         if wpcli_version | string == 'latest'
+         else 'https://github.com/wp-cli/wp-cli/releases/download/v' ~ wpcli_version
+              ~ '/wp-cli-' ~ wpcli_version ~ '.phar' }}
+
+- name: WordPress | Download wp-cli phar
+  ansible.builtin.get_url:
+    url: "{{ wpcli_download_url }}"
+    dest: "{{ wpcli_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    timeout: 90
+    force: "{{ wordpress_force_reinstall | bool }}"
+
+- name: WordPress | Verify wp-cli is executable
+  ansible.builtin.command: "{{ wpcli_path }} --version --allow-root"
+  changed_when: false

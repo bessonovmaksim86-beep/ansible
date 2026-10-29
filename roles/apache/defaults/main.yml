@@ -1,0 +1,26 @@
+---
+apache_packages_state: present
+apache_server_admin: webmaster@example.com
+apache_server_name: localhost
+apache_vhost_port: 80
+apache_document_root: /var/www/wordpress
+apache_docroot_owner: www-data
+apache_docroot_group: www-data
+apache_vhost_filename: wordpress.conf
+apache_allow_override: "All"
+apache_enable_ssl: false
+apache_selfsigned_cert: true
+apache_ssl_cert: /etc/ssl/certs/wordpress-selfsigned.crt
+apache_ssl_key: /etc/ssl/private/wordpress-selfsigned.key
+apache_extra_directives: ""
+apache_mods_enabled:
+  - rewrite.load
+  - ssl.load
+  - headers.load
+  - expires.load
+  - deflate.load
+  - proxy.load
+  - proxy_fcgi.load
+# unix-socket php-fpm, к которому Apache проксирует .php
+# (версия PHP берётся из переменной php_fpm_version роли php_fpm)
+php_fpm_listen: "/run/php/php{{ php_fpm_version | default('8.2') }}-fpm.sock"

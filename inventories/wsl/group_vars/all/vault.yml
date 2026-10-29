@@ -1,0 +1,10 @@
+---
+# Тестовые пароли для локального прогона в WSL2.
+mysql_root_password: "DevRootPass_2026"
+mysql_wpuser_password: "DevWpDbPass_2026"
+wordpress_admin_password: "DevWpAdminPass_2026"
+
+wordpress_salt_auth: ""
+wordpress_salt_secure: ""
+wordpress_logged_in_key: ""
+wordpress_nonce_key: ""

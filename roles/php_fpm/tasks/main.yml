@@ -1,0 +1,85 @@
+---
+# Роль php_fpm: PHP-FPM (Debian-пакеты) + pool + лимиты для WordPress.
+- name: PHP-FPM | Add sury.org repository (optional, for newer PHP)
+  when: php_fpm_sury_repo | bool
+  block:
+    - name: PHP-FPM | Install prerequisites for third-party repo
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - lsb-release
+          - ca-certificates
+        state: present
+
+    - name: PHP-FPM | Add sury.org repository (deb822, signed-by)
+      ansible.builtin.deb822_repository:
+        name: sury-php
+        types: [deb]
+        uris: "https://packages.sury.org/php/"
+        signed_by: "https://packages.sury.org/php/apt.gpg"
+        suites: "{{ ansible_distribution_release }}"
+        components: [main]
+        state: present
+      notify: PHP-FPM | Update apt cache
+
+    - name: PHP-FPM | Flush handlers to refresh cache after adding repo
+      ansible.builtin.meta: flush_handlers
+
+- name: PHP-FPM | Install PHP-FPM and WordPress-required extensions
+  ansible.builtin.apt:
+    name: "{{ php_fpm_all_packages }}"
+    state: present
+  notify: PHP-FPM | Restart php-fpm
+
+- name: PHP-FPM | Ensure run directory for socket exists
+  ansible.builtin.file:
+    path: /run/php
+    state: directory
+    owner: "{{ php_fpm_user }}"
+    group: "{{ php_fpm_group }}"
+    mode: "0755"
+
+- name: PHP-FPM | Deploy custom php.ini overrides (FPM)
+  ansible.builtin.template:
+    src: ansible-php.ini.j2
+    dest: "/etc/php/{{ php_fpm_version }}/fpm/conf.d/99-ansible-wordpress.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: PHP-FPM | Restart php-fpm
+
+- name: PHP-FPM | Deploy www pool configuration
+  ansible.builtin.template:
+    src: www.conf.j2
+    dest: "/etc/php/{{ php_fpm_version }}/fpm/pool.d/www.conf"
+    owner: root
+    group: root
+    mode: "0640"
+    backup: true
+  notify: PHP-FPM | Restart php-fpm
+
+- name: PHP-FPM | Validate FPM configuration
+  ansible.builtin.command: "php-fpm{{ php_fpm_version }} -t"
+  changed_when: false
+
+- name: PHP-FPM | Ensure php-fpm service is started and enabled
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "php{{ php_fpm_version }}-fpm"
+    state: started
+    enabled: true
+
+- name: PHP-FPM | Ensure FPM socket exists with web-server group
+  ansible.builtin.stat:
+    path: "{{ php_fpm_listen }}"
+  register: php_fpm_socket_stat
+  failed_when: not php_fpm_socket_stat.stat.exists
+
+- name: PHP-FPM | Report PHP version
+  ansible.builtin.command: php -r "echo PHP_VERSION;"
+  register: php_version_report
+  changed_when: false
+
+- name: PHP-FPM | Show installed PHP version
+  ansible.builtin.debug:
+    msg: "Установлен PHP {{ php_version_report.stdout }} (FPM {{ php_fpm_version }}), socket: {{ php_fpm_listen }}"

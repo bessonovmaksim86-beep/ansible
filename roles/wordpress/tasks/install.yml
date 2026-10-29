@@ -1,0 +1,59 @@
+---
+# Загрузка ядра WordPress: через wp-cli или архивом с wordpress.org.
+- name: WordPress | Check whether core is already downloaded
+  ansible.builtin.stat:
+    path: "{{ wordpress_path }}/wp-includes/version.php"
+  register: wordpress_core_stat
+
+- name: WordPress | Download core via wp-cli
+  ansible.builtin.command: >
+    {{ wpcli_path }} core download
+    --path={{ wordpress_path }}
+    --version={{ wordpress_version }}
+    --locale={{ wordpress_locale }}
+    {{ '--force' if wordpress_force_reinstall | bool else '' }}
+    --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  when:
+    - wordpress_method == 'wpcli'
+    - wordpress_force_reinstall | bool or not wordpress_core_stat.stat.exists
+  register: wordpress_core_download
+  changed_when: wordpress_core_download.rc == 0
+
+- name: WordPress | Resolve archive URL for tarball method
+  ansible.builtin.set_fact:
+    wordpress_archive_url: >-
+      {{ 'https://wordpress.org/latest.tar.gz'
+         if wordpress_version | string == 'latest'
+         else 'https://wordpress.org/wordpress-' ~ wordpress_version ~ '.tar.gz' }}
+  when: wordpress_method == 'tarball'
+
+- name: WordPress | Download WordPress archive
+  ansible.builtin.get_url:
+    url: "{{ wordpress_archive_url }}"
+    dest: "/tmp/wordpress-{{ wordpress_version }}.tar.gz"
+    mode: "0644"
+    timeout: 180
+  when:
+    - wordpress_method == 'tarball'
+    - wordpress_force_reinstall | bool or not wordpress_core_stat.stat.exists
+
+- name: WordPress | Unpack archive into document root
+  ansible.builtin.unarchive:
+    src: "/tmp/wordpress-{{ wordpress_version }}.tar.gz"
+    dest: "{{ wordpress_path }}"
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+  when:
+    - wordpress_method == 'tarball'
+    - wordpress_force_reinstall | bool or not wordpress_core_stat.stat.exists
+
+- name: WordPress | Remove temporary archive
+  ansible.builtin.file:
+    path: "/tmp/wordpress-{{ wordpress_version }}.tar.gz"
+    state: absent
+  when: wordpress_method == 'tarball'

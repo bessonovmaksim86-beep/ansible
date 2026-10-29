@@ -1,0 +1,18 @@
+---
+# Пакеты PHP с явной версией (vars имеют приоритет над defaults,
+# но не переопределяются значениями из inventory, кроме case/group_vars).
+php_fpm_packages:
+  - "php{{ php_fpm_version }}-fpm"
+  - "php{{ php_fpm_version }}-cli"
+  - "php{{ php_fpm_version }}-common"
+  - "php{{ php_fpm_version }}-opcache"
+  - "php{{ php_fpm_version }}-mbstring"
+  - "php{{ php_fpm_version }}-xml"
+  - "php{{ php_fpm_version }}-curl"
+  - "php{{ php_fpm_version }}-gd"
+  - "php{{ php_fpm_version }}-mysql"
+  - "php{{ php_fpm_version }}-zip"
+  - "php{{ php_fpm_version }}-intl"
+  - "php{{ php_fpm_version }}-bcmath"
+
+php_fpm_all_packages: "{{ php_fpm_packages + php_fpm_extra_packages }}"

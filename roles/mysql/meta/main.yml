@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: mysql
+  author: Ansible Student
+  description: MariaDB/MySQL на Debian, настройка root, БД и привилегий для WordPress
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+  galaxy_tags:
+    - database
+    - mysql
+    - mariadb
+dependencies: []

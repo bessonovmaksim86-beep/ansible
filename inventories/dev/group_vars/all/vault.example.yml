@@ -1,0 +1,30 @@
+---
+# Пример хранилища секретов (ansible-vault).
+#
+# ВНИМАНИЕ: этот файл — образец со ЗНАЧЕНИЯМИ-ЗАГЛУШКАМИ и не должен
+# использоваться в production как есть.
+#
+# Как сделать настоящий зашифрованный vault:
+#   ansible-vault create inventories/prod/group_vars/vault.yml
+#   ansible-vault edit inventories/prod/group_vars/vault.yml
+#   ansible-vault view inventories/prod/group_vars/vault.yml
+#
+# Внутри файла объявляются ТОЛЬКО эти переменные:
+#   mysql_root_password
+#   mysql_wpuser_password
+#   wordpress_db_password      (совпадает с mysql_wpuser_password)
+#   wordpress_admin_password
+#   wordpress_salt_auth / wordpress_salt_secure / wordpress_logged_in_*
+#
+# Запуск с расшифровкой:
+#   ansible-playbook -i inventories/prod playbooks/site.yml --ask-vault-pass
+#   ansible-playbook -i inventories/prod playbooks/site.yml --vault-password-file ~/.vault_pass
+
+mysql_root_password: "CHANGE_ME_root_password"
+mysql_wpuser_password: "CHANGE_ME_db_password"
+wordpress_db_password: "CHANGE_ME_db_password"
+wordpress_admin_password: "CHANGE_ME_wp_admin_password"
+wordpress_salt_auth: "CHANGE_ME_generated_salt"
+wordpress_salt_secure: "CHANGE_ME_generated_salt"
+wordpress_logged_in_key: "CHANGE_ME_generated_salt"
+wordpress_nonce_key: "CHANGE_ME_generated_salt"

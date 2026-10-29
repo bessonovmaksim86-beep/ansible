@@ -1,0 +1,137 @@
+---
+# Роль common: базовая подготовка Debian-хоста под LAMP/WordPress.
+- name: Common | Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Common | Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+# Таймзона задаётся файлами /etc/timezone + /etc/localtime: модуль
+# community.general.timezone и timedatectl требуют systemd, а в WSL2
+# (inbox-версия WSL) инициализация идёт через sysvinit.
+- name: Common | Set timezone in /etc/timezone
+  ansible.builtin.copy:
+    content: "{{ common_timezone }}\n"
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: "0644"
+  register: common_timezone_file
+
+- name: Common | Point /etc/localtime to the selected zone
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ common_timezone }}"
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Common | Reconfigure tzdata
+  ansible.builtin.command: dpkg-reconfigure --frontend noninteractive tzdata
+  when: common_timezone_file is changed
+  changed_when: true
+
+- name: Common | Generate locale
+  community.general.locale_gen:
+    name: "{{ common_locale }}"
+    state: present
+
+- name: Common | Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: common_set_hostname | bool
+
+- name: Common | Install and enable NTP (systemd-timesyncd)
+  when: common_ntp_enabled | bool
+  block:
+    - name: Common | Ensure systemd-timesyncd is running
+      ansible.builtin.service:
+        use: "{{ service_use | default(omit) }}"
+        name: systemd-timesyncd
+        state: started
+        enabled: true
+      failed_when: false
+
+- name: Common | Configure unattended security upgrades
+  when: common_unattended_upgrades | bool
+  block:
+    - name: Common | Install unattended-upgrades
+      ansible.builtin.apt:
+        name:
+          - unattended-upgrades
+          - apt-listchanges
+        state: present
+
+    - name: Common | Deploy unattended-upgrades config
+      ansible.builtin.template:
+        src: 50-ansible-unattended-upgrades.j2
+        dest: /etc/apt/apt.conf.d/52-ansible-unattended-upgrades
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Common | Restart unattended-upgrades
+
+- name: Common | Configure firewall (ufw)
+  when: common_firewall_enabled | bool
+  block:
+    - name: Common | Install ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Common | Allow SSH explicitly before enabling ufw
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+        state: enabled
+
+    - name: Common | Open required service ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item.split('/')[0] }}"
+        proto: "{{ item.split('/')[1] }}"
+        state: enabled
+      loop: "{{ common_firewall_allowed_ports }}"
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Common | Enable and deny-by-default ufw
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+- name: Common | Install and start fail2ban
+  when: common_fail2ban_enabled | bool
+  block:
+    - name: Common | Install fail2ban
+      ansible.builtin.apt:
+        name: fail2ban
+        state: present
+
+    - name: Common | Enable fail2ban service
+      ansible.builtin.service:
+        use: "{{ service_use | default(omit) }}"
+        name: fail2ban
+        state: started
+        enabled: true
+
+- name: Common | Ensure /var/www exists
+  ansible.builtin.file:
+    path: /var/www
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0755"
+
+- name: Common | Ensure PHP-family group www-data exists
+  ansible.builtin.group:
+    name: www-data
+    state: present
+    system: true
+
+- name: Common | Flush handlers before next role
+  ansible.builtin.meta: flush_handlers

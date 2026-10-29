@@ -1,0 +1,16 @@
+---
+- name: PHP-FPM | Restart php-fpm
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "php{{ php_fpm_version }}-fpm"
+    state: restarted
+
+- name: PHP-FPM | Reload php-fpm
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: "php{{ php_fpm_version }}-fpm"
+    state: reloaded
+
+- name: PHP-FPM | Update apt cache
+  ansible.builtin.apt:
+    update_cache: true

@@ -1,0 +1,6 @@
+---
+# Переменные конкретного хоста dev.
+wordpress_env_type: development
+apache_server_name: wp.local
+wordpress_site_url: "http://192.168.56.10"
+ansible_python_interpreter: /usr/bin/python3

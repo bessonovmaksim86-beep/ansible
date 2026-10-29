@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: common
+  author: Ansible Student
+  description: Базовая подготовка Debian-хоста (пакеты, tz, locale, firewall, fail2ban, автообновления)
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+  galaxy_tags:
+    - system
+    - security
+dependencies: []

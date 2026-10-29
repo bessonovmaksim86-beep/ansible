@@ -1,0 +1,117 @@
+---
+# Роль wordpress: развёртывание WordPress на готовом LAMP (Debian).
+- name: WordPress | Validate installation method
+  ansible.builtin.assert:
+    that:
+      - wordpress_method in ['wpcli', 'tarball']
+      - wordpress_db_name | length > 0
+      - wordpress_db_user | length > 0
+      - wordpress_db_password | length > 0
+      - wordpress_admin_password | length > 0
+    fail_msg: >-
+      Проверьте переменные: wordpress_method (wpcli|tarball), wordpress_db_name,
+      wordpress_db_user, wordpress_db_password, wordpress_admin_password
+      (секреты — в ansible-vault).
+    quiet: true
+
+- name: WordPress | Ensure document root exists
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    state: directory
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    mode: "0755"
+
+- name: WordPress | Install wp-cli on the host
+  ansible.builtin.include_tasks: wpcli.yml
+  when: wordpress_method == 'wpcli'
+
+- name: WordPress | Download WordPress core
+  ansible.builtin.include_tasks: install.yml
+
+- name: WordPress | Prepare secret keys and salts
+  ansible.builtin.include_tasks: salts.yml
+
+- name: WordPress | Deploy wp-config.php
+  ansible.builtin.template:
+    src: wp-config.php.j2
+    dest: "{{ wordpress_path }}/wp-config.php"
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    mode: "0640"
+    backup: true
+  notify: WordPress | Reload php-fpm
+
+- name: WordPress | Deploy .htaccess (permalinks)
+  ansible.builtin.template:
+    src: htaccess.j2
+    dest: "{{ wordpress_path }}/.htaccess"
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    # 0644, а не 0640: WordPress сам перезаписывает .htaccess при
+    # `wp rewrite flush` именно с таким режимом. Более строгий режим
+    # превращал бы каждый прогон плейбука в "changed".
+    mode: "0644"
+  register: wordpress_htaccess_deploy
+
+- name: WordPress | Ensure writable directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    mode: "0755"
+  loop:
+    - "{{ wordpress_path }}/wp-content/uploads"
+    - "{{ wordpress_path }}/wp-content/cache"
+    - "{{ wordpress_path }}/wp-content/upgrade"
+
+# Только владелец и группа: режимы выставляются точечно задачами выше и ниже,
+# иначе рекурсивный chmod конфликтовал бы с ними и нарушал идемпотентность.
+- name: WordPress | Apply ownership recursively
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    recurse: true
+
+- name: WordPress | Keep wp-config.php restricted
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}/wp-config.php"
+    owner: "{{ wordpress_owner }}"
+    group: "{{ wordpress_group }}"
+    mode: "0640"
+
+- name: WordPress | Run the installer (wp core install)
+  ansible.builtin.include_tasks: configure.yml
+  when: wordpress_method == 'wpcli'
+
+- name: WordPress | Manage plugins and themes
+  ansible.builtin.include_tasks: content.yml
+  when:
+    - wordpress_method == 'wpcli'
+    - (wordpress_plugins | length > 0) or (wordpress_themes | length > 0)
+
+- name: WordPress | Configure system cron for wp-cron
+  ansible.builtin.include_tasks: cron.yml
+  when:
+    - wordpress_cron_enabled | bool
+    - wordpress_method == 'wpcli'
+
+- name: WordPress | HTTP smoke test (with the host itself)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ apache_vhost_port | default(80) }}/"
+    status_code: [200, 301, 302]
+    return_content: false
+  register: wordpress_http_check
+  retries: 5
+  delay: 3
+  until: wordpress_http_check is succeeded
+
+- name: WordPress | Deployment summary
+  ansible.builtin.debug:
+    msg:
+      - "Каталог сайта: {{ wordpress_path }}"
+      - "URL: {{ wordpress_site_url }}"
+      - "Логин администратора: {{ wordpress_admin_user }} (пароль в ansible-vault)"
+      - "Метод установки: {{ wordpress_method }}, версия: {{ wordpress_version }}"

@@ -1,0 +1,88 @@
+---
+# Установка приложения через wp-cli: wp core install + базовые настройки.
+- name: WordPress | Check if the site is already installed
+  ansible.builtin.command: >
+    {{ wpcli_path }} core is-installed --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  register: wordpress_installed
+  failed_when: false
+  changed_when: false
+
+- name: WordPress | Run wp core install
+  ansible.builtin.command: >
+    {{ wpcli_path }} core install
+    --url={{ wordpress_site_url }}
+    --title="{{ wordpress_title }}"
+    --admin_user={{ wordpress_admin_user }}
+    --admin_password="{{ wordpress_admin_password }}"
+    --admin_email={{ wordpress_admin_email }}
+    --skip-email
+    --path={{ wordpress_path }}
+    --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  when: wordpress_installed.rc != 0
+  register: wordpress_core_install
+  changed_when: wordpress_core_install.rc == 0
+  no_log: true
+
+- name: WordPress | Apply site options (wp option update)
+  ansible.builtin.command: >
+    {{ wpcli_path }} option update {{ item.key }} "{{ item.value }}"
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_options | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  changed_when: true
+  when: wordpress_options | length > 0
+
+- name: WordPress | Read current permalink structure
+  ansible.builtin.command: >
+    {{ wpcli_path }} option get permalink_structure
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  register: wordpress_permalink_current
+  changed_when: false
+  failed_when: false
+  when: wordpress_permalink_structure | length > 0
+
+- name: WordPress | Set permalink structure
+  ansible.builtin.command: >
+    {{ wpcli_path }} rewrite structure '{{ wordpress_permalink_structure }}'
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  when:
+    - wordpress_permalink_structure | length > 0
+    - wordpress_permalink_current.stdout | default('') | trim != wordpress_permalink_structure
+  # wp-cli не сравнивает значение до/после, поэтому решение о "changed"
+  # принимает предыдущая задача с чтением опции.
+  changed_when: true
+  register: wordpress_permalink_set
+
+# `wp rewrite flush --hard` всегда завершается успешно и каждый раз трогает
+# .htaccess, поэтому запускаем его только когда правила действительно нужно
+# пересобрать: сменилась структура ссылок в БД либо шаблон .htaccess перезаписан
+# Ansible и блок WordPress нужно восстановить на месте.
+- name: WordPress | Flush rewrite rules
+  ansible.builtin.command: >
+    {{ wpcli_path }} rewrite flush --hard
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  when:
+    - (wordpress_permalink_set is changed) or (wordpress_htaccess_deploy is changed)
+
+- name: WordPress | Remove default content (optional)
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin delete hello {{ 'akismet' if wordpress_delete_akismet | bool else '' }}
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  when: wordpress_delete_default_plugins | bool
+  changed_when: true
+  failed_when: false

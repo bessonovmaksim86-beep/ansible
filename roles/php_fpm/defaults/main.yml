@@ -1,0 +1,35 @@
+---
+# Версия PHP из репозитория Debian 12 (bookworm) = 8.2.
+# Для 8.3 установите php_fpm_sury_repo: true и php_fpm_version: "8.3".
+php_fpm_version: "8.2"
+php_fpm_sury_repo: false
+
+php_fpm_user: www-data
+php_fpm_group: www-data
+php_fpm_listen: "/run/php/php{{ php_fpm_version }}-fpm.sock"
+php_fpm_listen_owner: www-data
+php_fpm_listen_group: www-data
+php_fpm_listen_mode: "0660"
+
+# Управление процессами: ondemand для слабых dev-ВМ, dynamic для prod
+php_fpm_pm: ondemand
+php_fpm_pm_max_children: 20
+php_fpm_pm_start_servers: 4
+php_fpm_pm_min_spare_servers: 2
+php_fpm_pm_max_spare_servers: 8
+php_fpm_pm_max_requests: 500
+php_fpm_pm_process_idle_timeout: "10s"
+
+php_fpm_max_execution_time: 300
+php_fpm_max_input_time: 300
+php_fpm_memory_limit: 256M
+php_fpm_upload_max_filesize: 64M
+php_fpm_post_max_size: 64M
+php_fpm_max_input_vars: 5000
+php_fpm_date_timezone: Europe/Moscow
+php_fpm_opcache_enabled: true
+php_fpm_opcache_memory_consumption: 128
+php_fpm_display_errors: "Off"
+
+# Дополнительные пакеты, имена которых указываются как есть
+php_fpm_extra_packages: []

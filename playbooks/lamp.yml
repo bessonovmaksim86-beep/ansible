@@ -1,0 +1,57 @@
+---
+# lamp.yml — только стек Apache + MariaDB + PHP-FPM, без CMS.
+#   ansible-playbook -i inventories/dev playbooks/lamp.yml
+- name: Подготовка хоста
+  hosts: lamp
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  roles:
+    - common
+
+- name: Установка LAMP
+  hosts: lamp
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  roles:
+    - mysql
+    - php_fpm
+    - apache
+
+- name: Проверка LAMP
+  hosts: webservers
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Проверяем, что Apache отвечает
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ apache_vhost_port | default(80) }}/"
+        status_code: [200, 301, 302, 403, 404]
+      register: lamp_web_check
+      retries: 5
+      delay: 2
+      until: lamp_web_check is succeeded
+
+    # Состояние сервиса проверяем через unix-сокет пула, а не через
+    # systemctl: так проверка работает и на systemd, и на sysvinit
+    # (напр. WSL старого поколения, где systemd не поднимается).
+    # Плей не применяет роль php_fpm, поэтому путь к сокету задан запасным
+    # значением по той же формуле, что и в defaults роли.
+    - name: Проверяем, что PHP-FPM слушает сокет пула
+      ansible.builtin.wait_for:
+        path: "{{ php_fpm_listen | default('/run/php/php' ~ (php_fpm_version | default('8.2')) ~ '-fpm.sock') }}"
+        timeout: 30
+      register: lamp_php_check
+
+    - name: Проверяем MariaDB
+      ansible.builtin.command: "mariadb -e 'SELECT VERSION();'"
+      changed_when: false
+      register: lamp_db_check
+
+    - name: Итог
+      ansible.builtin.debug:
+        msg:
+          - "Apache: отвечает (код {{ lamp_web_check.status }})"
+          - "PHP-FPM: сокет доступен"
+          - "MariaDB: {{ lamp_db_check.stdout_lines[0] | default('ok') }}"

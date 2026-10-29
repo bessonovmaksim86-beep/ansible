@@ -1,0 +1,55 @@
+---
+
+# --- Менеджер сервисов ---
+# Inbox-версия WSL (ядро 5.10 из комплекта Windows 10) не поднимает
+# systemd как PID 1, хотя пакеты systemd установлены и ansible_service_mgr
+# определяет его ошибочно. Сервисы запускаются через sysvinit
+# (/etc/init.d/*), поэтому менеджер задаётся явно. На обычных Debian-хостах
+# переменную задавать не нужно - там работает автоопределение.
+service_use: sysvinit
+# Переменные для развёртывания внутри WSL2 (Debian 12 на Windows-машине).
+# Наследуют логику ролей, но адаптированы под локальный прогон без сети.
+
+# --- common: в WSL файрвол и fail2ban отключаем ---
+# ufw в WSL2 только мешает (сеть NAT, доступ из Windows идёт через localhost),
+# fail2ban не нужен на локальной тестовой системе.
+common_firewall_enabled: false
+common_fail2ban_enabled: false
+common_unattended_upgrades: false
+common_ntp_enabled: false          # время в WSL синхронизируется с Windows
+common_packages:
+  - curl
+  - wget
+  - unzip
+  - git
+  - ca-certificates
+  - gnupg
+  - acl
+  - openssl
+  - locales          # нужен модулю community.general.locale_gen
+  - cron
+
+# --- apache: сайт доступен с Windows по http://localhost ---
+apache_server_name: localhost
+apache_enable_ssl: false
+apache_document_root: /var/www/wordpress
+
+# --- php_fpm: скромные лимиты под тестовую ВМ ---
+php_fpm_version: "8.2"
+php_fpm_pm: ondemand
+php_fpm_pm_max_children: 10
+php_fpm_memory_limit: 256M
+
+# --- mariadb ---
+mysql_distro: mariadb
+mysql_bind_address: 127.0.0.1
+mysql_innodb_buffer_pool_size: 128M
+mysql_max_connections: 100
+
+# --- wordpress: доступ с Windows через localhost ---
+wordpress_site_url: "http://localhost"
+wordpress_title: "Ansible WSL2 WordPress"
+wordpress_env_type: development
+wordpress_cron_enabled: true
+
+# Пароли — локальные тестовые, см. group_vars/all/vault.yml

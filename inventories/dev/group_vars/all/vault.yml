@@ -1,0 +1,11 @@
+---
+mysql_root_password: "DevRootPass_2026"
+mysql_wpuser_password: "DevWpDbPass_2026"
+wordpress_admin_password: "DevWpAdminPass_2026"
+
+# Соли wp-config.php: пустые значения => роль wordpress сгенерирует их сама
+# и сохранит в .ansible-salts/ (каталог исключён из git).
+wordpress_salt_auth: ""
+wordpress_salt_secure: ""
+wordpress_logged_in_key: ""
+wordpress_nonce_key: ""

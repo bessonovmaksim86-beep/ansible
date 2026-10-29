@@ -1,0 +1,28 @@
+---
+# Ключи и соли wp-config.php.
+# Приоритет — значения из vault; если они пустые, соли генерируются lookup'ом
+# 'password' и сохраняются в локальном каталоге (вне git), поэтому повторные
+# запуски плейбука НЕ сбрасывают активные сессии пользователей сайта.
+- name: WordPress | Ensure local directory for generated keys exists (control node)
+  ansible.builtin.file:
+    path: "{{ wordpress_salt_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  # lookup('password') выполняется на управляющем узле от имени пользователя
+  # Ansible (без sudo), поэтому и каталог создаётся без become: иначе его
+  # владельцем станет root и запись ключей закончится Permission denied.
+  become: false
+
+- name: WordPress | Build keys and salts
+  ansible.builtin.set_fact:
+    wordpress_salts:
+      auth_key: "{{ wordpress_salt_auth if wordpress_salt_auth | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-auth_key length=64 chars=ascii_letters,digits') }}"
+      secure_auth_key: "{{ wordpress_salt_secure if wordpress_salt_secure | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-secure_auth_key length=64 chars=ascii_letters,digits') }}"
+      logged_in_key: "{{ wordpress_logged_in_key if wordpress_logged_in_key | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-logged_in_key length=64 chars=ascii_letters,digits') }}"
+      nonce_key: "{{ wordpress_nonce_key if wordpress_nonce_key | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-nonce_key length=64 chars=ascii_letters,digits') }}"
+      auth_salt: "{{ wordpress_salt_auth if wordpress_salt_auth | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-auth_salt length=64 chars=ascii_letters,digits') }}"
+      secure_auth_salt: "{{ wordpress_salt_secure if wordpress_salt_secure | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-secure_auth_salt length=64 chars=ascii_letters,digits') }}"
+      logged_in_salt: "{{ wordpress_logged_in_key if wordpress_logged_in_key | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-logged_in_salt length=64 chars=ascii_letters,digits') }}"
+      nonce_salt: "{{ wordpress_nonce_key if wordpress_nonce_key | length > 0 else lookup('password', wordpress_salt_dir ~ '/' ~ inventory_hostname ~ '-nonce_salt length=64 chars=ascii_letters,digits') }}"
+  no_log: true

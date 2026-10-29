@@ -1,0 +1,29 @@
+---
+# Переменные по умолчанию роли common.
+common_packages:
+  - curl
+  - wget
+  - unzip
+  - git
+  - ca-certificates
+  - gnupg
+  - acl
+  - openssl
+  # локаль генерируется модулем locale_gen, которому нужен этот пакет
+  - locales
+  # модуль cron управляет заданиями wp-cron
+  - cron
+
+common_timezone: Europe/Moscow
+common_locale: en_US.UTF-8
+common_set_hostname: false
+common_ntp_enabled: true
+common_unattended_upgrades: true
+
+common_firewall_enabled: true
+common_firewall_allowed_ports:
+  - 22/tcp
+  - 80/tcp
+  - 443/tcp
+
+common_fail2ban_enabled: true

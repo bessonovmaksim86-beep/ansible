@@ -1,0 +1,120 @@
+---
+# Общие переменные группы lamp (DEV).
+# Порядок переопределения: defaults роли < group_vars/all < group_vars/lamp <
+# host_vars < -e на командной строке.
+
+# --- Пользователь на хосте, под которым идёт SSH (должен уметь sudo NOPASSWD) ---
+ansible_user: admin
+
+# --- Роль common ---
+common_packages:
+  - curl
+  - wget
+  - unzip
+  - git
+  - ca-certificates
+  - gnupg
+  - acl
+  - openssl
+  - locales
+  - cron
+common_timezone: Europe/Moscow
+common_locale: en_US.UTF-8
+common_ntp_enabled: true
+common_unattended_upgrades: true
+common_firewall_enabled: true
+common_firewall_allowed_ports:
+  - 22/tcp
+  - 80/tcp
+  - 443/tcp
+common_fail2ban_enabled: true
+
+# --- Роль apache ---
+apache_packages_state: latest
+apache_server_admin: webmaster@example.com
+apache_server_name: wp.local
+apache_vhost_port: 80
+apache_document_root: /var/www/wordpress
+apache_docroot_owner: www-data
+apache_docroot_group: www-data
+apache_vhost_filename: wordpress.conf
+apache_allow_override: "All"
+apache_enable_ssl: false
+apache_selfsigned_cert: true
+apache_ssl_cert: /etc/ssl/certs/wordpress-selfsigned.crt
+apache_ssl_key: /etc/ssl/private/wordpress-selfsigned.key
+apache_mods_enabled:
+  - rewrite.load
+  - ssl.load
+  - headers.load
+  - expires.load
+  - deflate.load
+  - proxy.load
+  - proxy_fcgi.load
+
+# --- Роль php_fpm ---
+php_fpm_version: "8.2"        # Debian 12 (bookworm); для 8.3: php_fpm_sury_repo: true
+php_fpm_sury_repo: false
+php_fpm_user: www-data
+php_fpm_group: www-data
+php_fpm_pm: ondemand          # на слабой dev-ВМ экономит память; для prod — dynamic
+php_fpm_pm_max_children: 20
+php_fpm_pm_start_servers: 4
+php_fpm_pm_min_spare_servers: 2
+php_fpm_pm_max_spare_servers: 8
+php_fpm_max_execution_time: 300
+php_fpm_memory_limit: 256M
+php_fpm_upload_max_filesize: 64M
+php_fpm_post_max_size: 64M
+php_fpm_max_input_vars: 5000
+php_fpm_date_timezone: Europe/Moscow
+php_fpm_extra_packages:
+  - "php{{ php_fpm_version }}-imagick"
+
+# --- Роль mysql (MariaDB) ---
+mysql_distro: mariadb         # mariadb | mysql
+mysql_root_user: root
+mysql_bind_address: 127.0.0.1
+mysql_port: 3306
+mysql_datadir: /var/lib/mysql
+mysql_innodb_buffer_pool_size: 256M
+mysql_max_connections: 200
+mysql_slow_query_log_enabled: true
+mysql_slow_query_time: 2
+mysql_wordpress_db_name: wordpress
+mysql_wordpress_db_user: wpuser
+mysql_databases:
+  - name: "{{ mysql_wordpress_db_name }}"
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+mysql_users:
+  - name: "{{ mysql_wordpress_db_user }}"
+    host: localhost
+    password: "{{ mysql_wpuser_password }}"
+    priv: "{{ mysql_wordpress_db_name }}.*:ALL,GRANT"
+
+# --- Роль wordpress ---
+wordpress_method: wpcli       # wpcli | tarball
+wordpress_version: latest
+wordpress_locale: en_US
+wordpress_path: /var/www/wordpress
+wordpress_owner: www-data
+wordpress_group: www-data
+wordpress_title: "My Ansible WordPress"
+wordpress_admin_user: wpadmin
+wordpress_admin_email: admin@example.com
+wordpress_table_prefix: wp_
+wordpress_env_type: development
+wordpress_debug: false
+wordpress_delete_default_plugins: true
+wordpress_permalink_structure: "/%postname%/"
+wordpress_plugins:
+  - name: wordfence
+    state: present
+wordpress_themes:
+  - name: twentytwentyfour
+    state: present
+    activate: true
+wordpress_cron_enabled: true
+wordpress_cron_interval: "*/5 * * * *"
+wordpress_disable_wp_cron: true

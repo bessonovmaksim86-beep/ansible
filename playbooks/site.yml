@@ -1,0 +1,39 @@
+---
+# site.yml — основной сценарий: полный LAMP + WordPress за один прогон.
+#
+#   ansible-playbook -i inventories/dev  playbooks/site.yml
+#   ansible-playbook -i inventories/prod playbooks/site.yml --ask-vault-pass
+#
+# Опции: --check --diff (проверка без изменений), --tags lamp|wordpress, --limit wp01
+
+- name: Подготовка Debian-хостов (пакеты, tz, firewall, fail2ban)
+  hosts: lamp
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  roles:
+    - role: common
+      tags: [common, always]
+
+- name: Устанавливаем веб-стек LAMP (Apache, MariaDB, PHP-FPM)
+  hosts: lamp
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  tags: [lamp]
+  roles:
+    - role: mysql
+      tags: [mysql, db]
+    - role: php_fpm
+      tags: [php]
+    - role: apache
+      tags: [apache, web]
+
+- name: Разворачиваем WordPress
+  hosts: webservers
+  become: true
+  gather_facts: true
+  tags: [wordpress, cms]
+  roles:
+    - role: wordpress
+      tags: [wordpress, cms]

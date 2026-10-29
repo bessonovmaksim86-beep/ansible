@@ -1,0 +1,140 @@
+---
+# Роль apache: Apache 2.4 на Debian + vhost для WordPress (PHP через php-fpm).
+- name: Apache | Install packages
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - apache2-utils
+    state: "{{ apache_packages_state }}"
+
+- name: Apache | Disable default MPM prefork (needed for event + php-fpm)
+  community.general.apache2_module:
+    name: mpm_prefork
+    state: absent
+  notify: Apache | Restart apache
+
+- name: Apache | Enable MPM event
+  community.general.apache2_module:
+    name: mpm_event
+    state: present
+  notify: Apache | Restart apache
+
+- name: Apache | Enable required modules
+  community.general.apache2_module:
+    name: "{{ item | regex_replace('\\.load$', '') }}"
+    state: present
+  loop: "{{ apache_mods_enabled }}"
+  loop_control:
+    label: "{{ item }}"
+  notify: Apache | Reload apache
+
+- name: Apache | Set ServerTokens/ServerSignature hardening
+  ansible.builtin.copy:
+    dest: /etc/apache2/conf-available/ansible-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (role: apache)
+      ServerTokens Prod
+      ServerSignature Off
+      TraceEnable Off
+      FileETag None
+  notify: Apache | Reload apache
+
+- name: Apache | Enable hardening config
+  ansible.builtin.command: a2enconf ansible-hardening
+  args:
+    creates: /etc/apache2/conf-enabled/ansible-hardening.conf
+  notify: Apache | Reload apache
+
+- name: Apache | Set global ServerName and ServerAdmin
+  ansible.builtin.copy:
+    dest: /etc/apache2/conf-available/ansible-servername.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (role: apache)
+      ServerName {{ apache_server_name }}
+      ServerAdmin {{ apache_server_admin }}
+  notify: Apache | Reload apache
+
+- name: Apache | Enable global ServerName config
+  ansible.builtin.command: a2enconf ansible-servername
+  args:
+    creates: /etc/apache2/conf-enabled/ansible-servername.conf
+  notify: Apache | Reload apache
+
+- name: Apache | Ensure document root exists with correct ownership
+  ansible.builtin.file:
+    path: "{{ apache_document_root }}"
+    state: directory
+    owner: "{{ apache_docroot_owner }}"
+    group: "{{ apache_docroot_group }}"
+    mode: "0755"
+
+- name: Apache | Generate self-signed certificate for HTTPS (dev/test)
+  ansible.builtin.command: >
+    openssl req -x509 -nodes -newkey rsa:2048 -days 825
+    -keyout {{ apache_ssl_key }} -out {{ apache_ssl_cert }}
+    -subj "/C=RU/ST=Moscow/L=Moscow/O=Ansible/CN={{ apache_server_name }}"
+  args:
+    creates: "{{ apache_ssl_cert }}"
+  when:
+    - apache_enable_ssl | bool
+    - apache_selfsigned_cert | bool
+  notify: Apache | Reload apache
+
+- name: Apache | Set certificate and key permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "{{ '0600' if item == apache_ssl_key else '0644' }}"
+  loop:
+    - "{{ apache_ssl_cert }}"
+    - "{{ apache_ssl_key }}"
+  when: apache_enable_ssl | bool
+
+- name: Apache | Deploy WordPress virtual host
+  ansible.builtin.template:
+    src: vhost.conf.j2
+    dest: "/etc/apache2/sites-available/{{ apache_vhost_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Apache | Reload apache
+
+- name: Apache | Enable WordPress virtual host
+  ansible.builtin.command: "a2ensite {{ apache_vhost_filename }}"
+  args:
+    creates: "/etc/apache2/sites-enabled/{{ apache_vhost_filename }}"
+  notify: Apache | Reload apache
+
+- name: Apache | Disable default site
+  ansible.builtin.command: "a2dissite 000-default.conf"
+  args:
+    removes: /etc/apache2/sites-enabled/000-default.conf
+  notify: Apache | Reload apache
+
+- name: Apache | Test configuration before starting
+  ansible.builtin.command: apachectl configtest
+  changed_when: false
+
+- name: Apache | Ensure apache2 is started and enabled
+  ansible.builtin.service:
+    use: "{{ service_use | default(omit) }}"
+    name: apache2
+    state: started
+    enabled: true
+
+- name: Apache | Ensure apache2 is reachable on localhost
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ apache_vhost_port }}/"
+    status_code: [200, 301, 302, 403, 404]
+    return_content: false
+  register: apache_probe
+  retries: 5
+  delay: 2
+  until: apache_probe is succeeded

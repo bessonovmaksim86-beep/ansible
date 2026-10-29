@@ -1,0 +1,11 @@
+---
+# wordpress.yml — только развёртывание CMS (LAMP уже должен быть установлен).
+#   ansible-playbook -i inventories/dev playbooks/wordpress.yml
+#   ansible-playbook -i inventories/dev playbooks/wordpress.yml --tags wordpress
+- name: Развёртывание WordPress
+  hosts: webservers
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  roles:
+    - wordpress

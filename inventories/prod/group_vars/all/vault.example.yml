@@ -1,0 +1,12 @@
+---
+# Прод-секреты: файл создаётся шифровальщиком, в git попадает уже зашифрованным
+# (начало файла: $ANSIBLE_VAULT;1.1;AES256).
+#
+#   ansible-vault create inventories/prod/group_vars/vault.yml
+#
+# Обязательные ключи:
+#   mysql_root_password
+#   mysql_wpuser_password
+#   wordpress_admin_password
+#   wordpress_salt_auth / wordpress_salt_secure
+#   wordpress_logged_in_key / wordpress_nonce_key   (можно оставить пустыми — сгенерируются)

@@ -1,0 +1,19 @@
+---
+# WordPress планировщик через системный cron (wp cron event run --due-now),
+# а встроенный wp-cron по хитам отключается константой в wp-config.php.
+- name: WordPress | Ensure cron package is present
+  ansible.builtin.apt:
+    name: cron
+    state: present
+
+- name: WordPress | Install crontab entry for wp-cron
+  ansible.builtin.cron:
+    name: "WordPress wp-cron ({{ wordpress_path }})"
+    minute: "{{ wordpress_cron_interval.split(' ')[0] }}"
+    hour: "{{ wordpress_cron_interval.split(' ')[1] }}"
+    day: "{{ wordpress_cron_interval.split(' ')[2] }}"
+    month: "{{ wordpress_cron_interval.split(' ')[3] }}"
+    weekday: "{{ wordpress_cron_interval.split(' ')[4] }}"
+    user: "{{ wordpress_owner }}"
+    job: "{{ wpcli_path }} cron event run --due-now --path={{ wordpress_path }} --url={{ wordpress_site_url }} --quiet >/dev/null 2>&1"
+    state: present

@@ -1,0 +1,119 @@
+---
+# Управление плагинами и темами через wp-cli (идемпотентно: сначала читаем
+# фактическое состояние, затем меняем только то, что требует изменения).
+- name: WordPress | Get installed plugins
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin list --fields=name,status --format=json
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  register: wp_plugins_installed
+  changed_when: false
+
+- name: WordPress | Parse installed plugins
+  ansible.builtin.set_fact:
+    wp_installed_plugins: "{{ (wp_plugins_installed.stdout | from_json) | map(attribute='name') | list }}"
+
+- name: WordPress | Install missing plugins
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin install {{ item.name }} --activate
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_plugins }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.state | default('present') != 'absent'
+    - item.name not in wp_installed_plugins
+  register: wp_plugin_install
+  changed_when: true
+
+- name: WordPress | Activate plugins that must be active
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin activate {{ item.name }}
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_plugins }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.state | default('present') != 'absent'
+    - item.activate | default(false) | bool
+    - item.name in wp_installed_plugins
+  register: wp_plugin_activate
+  changed_when: "'already Active' not in wp_plugin_activate.stdout | default('')"
+  failed_when:
+    - wp_plugin_activate.rc != 0
+    - "'already Active' not in wp_plugin_activate.stdout | default('')"
+
+- name: WordPress | Remove plugins marked as absent
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin uninstall {{ item.name }} --deactivate
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_plugins }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.state | default('present') == 'absent'
+    - item.name in wp_installed_plugins
+  changed_when: true
+
+- name: WordPress | Get installed themes
+  ansible.builtin.command: >
+    {{ wpcli_path }} theme list --fields=name,status --format=json
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  register: wp_themes_installed
+  changed_when: false
+
+- name: WordPress | Parse installed themes
+  ansible.builtin.set_fact:
+    wp_installed_themes: "{{ (wp_themes_installed.stdout | from_json) | map(attribute='name') | list }}"
+
+- name: WordPress | Install missing themes
+  ansible.builtin.command: >
+    {{ wpcli_path }} theme install {{ item.name }}
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_themes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.state | default('present') != 'absent'
+    - item.name not in wp_installed_themes
+  changed_when: true
+
+- name: WordPress | Activate required theme
+  ansible.builtin.command: >
+    {{ wpcli_path }} theme activate {{ item.name }}
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  loop: "{{ wordpress_themes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.state | default('present') != 'absent'
+    - item.activate | default(false) | bool
+  register: wp_theme_activate
+  changed_when: "'is now active' in wp_theme_activate.stdout | default('')"
+  failed_when: wp_theme_activate.rc != 0
+
+- name: WordPress | Report final plugin/theme state
+  ansible.builtin.command: >
+    {{ wpcli_path }} plugin list --fields=name,status,version
+    --path={{ wordpress_path }} --url={{ wordpress_site_url }} --allow-root
+  become: true
+  become_user: "{{ wordpress_owner }}"
+  register: wp_final_plugins
+  changed_when: false
+
+- name: WordPress | Show installed plugins
+  ansible.builtin.debug:
+    msg: "{{ wp_final_plugins.stdout_lines }}"

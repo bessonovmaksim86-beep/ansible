@@ -1,0 +1,200 @@
+Ansible: LAMP + WordPress (Debian)
+Универсальный проект Ansible для автоматического развёртывания CMS WordPress в стеке LAMP (Linux, Apache, MariaDB/MySQL, PHP-FPM) на хостах Debian 12. Структура рассчитана на повторное использование в других проектах: роли самодостаточны, все настройки вынесены в переменные inventory.
+
+1. Структура проекта
+ansible-lamp-wordpress/
+├── ansible.cfg                  # настройки Ansible (inventory, roles_path, pipelining)
+├── requirements.yml             # зависимости коллекций (community.general, community.mysql)
+├── Makefile                     # типовые команды: syntax / ping / deploy / vault
+├── inventories/
+│   ├── hosts.ini                # плоский инвентарь для быстрых проверок
+│   ├── dev/
+│   │   ├── hosts.yml            # хосты и группы (webservers, dbservers, lamp)
+│   │   ├── group_vars/
+│   │   │   ├── lamp.yml         # все параметры ролей для группы lamp
+│   │   │   └── all/vault.yml    # пароли dev (тестовые, для воспроизводимого прогона)
+│   │   └── host_vars/wp01.yml   # адрес сайта, имя сервера для конкретного хоста
+│   └── prod/
+│       ├── hosts.yml
+│       ├── group_vars/
+│       │   ├── lamp.yml
+│       │   └── all/vault.example.yml   # шаблон: реальный vault создаётся ansible-vault
+│       └── host_vars/wp-prod-01.yml
+├── inventories/wsl/             # хост в WSL2 (ansible_connection: local)
+│   ├── hosts.yml                #   hosts-ssh.yml — вариант с SSH из Windows
+│   └── group_vars/{lamp.yml,all/vault.yml}
+├── playbooks/
+│   ├── site.yml                 # полный прогон: common -> LAMP -> WordPress
+│   ├── lamp.yml                 # только Apache + MariaDB + PHP-FPM (+самопроверка)
+│   └── wordpress.yml            # только развёртывание CMS
+├── roles/
+│   ├── common/                  # пакеты, tz, locale, ufw, fail2ban, автообновления
+│   ├── apache/                  # apache2 (mpm_event), hardening, vhost с proxy_fcgi
+│   ├── mysql/                   # MariaDB/MySQL, root-пароль, БД и привилегии WP
+│   ├── php_fpm/                 # php8.2-fpm, расширения, pool, php.ini под WordPress
+│   └── wordpress/               # wp-cli, core download, wp-config.php, wp core install
+├── scripts/
+│   ├── bootstrap-host.sh        # подготовка чистого хоста: ключ, sudo, python3
+│   ├── deploy.sh                # запуск плейбука с записью полного лога в logs/
+│   ├── enable-wsl2.ps1          # PowerShell: включить WSL2 и поставить Debian
+│   ├── provision-wsl-rootfs.sh  # базовая настройка импортированного rootfs WSL
+│   ├── setup-wsl-debian.sh      # подготовка Debian в WSL: python3, Ansible, коллекции
+│   ├── wsl-sync-run.sh          # синхронизация проекта в WSL + прогон (purge|keep)
+│   ├── wsl-report-run.sh        # отчётный прогон через deploy.sh и перенос лога на D:
+│   ├── wsl-run-playbook.sh      # прогон одного плейбука после синхронизации
+│   ├── wsl-diag-services.sh     # диагностика сервисов без systemd
+│   ├── wsl-show-error.sh        # показать место первой фатальной ошибки в логе
+│   ├── wsl-show-recap.sh        # показать PLAY RECAP и самотест последнего лога
+│   ├── validate-yaml.js         # офлайн-валидация синтаксиса всех *.yml (node + js-yaml)
+│   └── validate-structure.js    # офлайн-проверка ролей: шаблоны, handlers, include, переменные
+├── docs/
+│   ├── RUNBOOK.md               # последовательность действий при развёртывании
+│   └── WSL2.md                  # то же для локального прогона в WSL2 + типичные проблемы
+└── logs/                        # логи прогонов (deploy.sh пишет сюда)
+Каждая роль содержит стандартный набор каталогов: tasks/, handlers/, defaults/, vars/, templates/, meta/.
+
+2. Требования
+Компонент	Где ставится	Версия
+Ansible (ansible-core)	управляющий узел (WSL/macOS/Linux)	≥ 2.14
+Python 3	целевой хост	3.11 (Debian 12)
+Apache	целевой хост	2.4 (mpm_event)
+MariaDB	целевой хост	10.11 (пакет Debian)
+PHP-FPM	целевой хост	8.2
+WordPress	целевой хост	последняя стабильная
+Коллекции: community.general (ufw, apache2_module, timezone, locale_gen), community.mysql (mysql_db, mysql_user, mysql_query).
+
+ansible-galaxy collection install -r requirements.yml -p collections
+3. Переменные
+Приоритет (от низшего к высшему): defaults роли → vars роли → group_vars/all → group_vars/lamp → host_vars/<host> → ключ -e.
+
+Ключевые переменные (полный список — inventories/dev/group_vars/lamp.yml):
+
+Переменная	Назначение	Пример
+ansible_host	адрес ВМ	1.2.3.4
+ansible_user	пользователь SSH с sudo	admin
+mysql_wordpress_db_name	имя БД	wordpress
+mysql_wordpress_db_user	пользователь БД	wpuser
+mysql_root_password	пароль root СУБД (vault)	—
+mysql_wpuser_password	пароль пользователя БД (vault)	—
+wordpress_site_url	публичный URL сайта	http://1.2.3.4
+wordpress_admin_user	логин администратора CMS	wpadmin
+wordpress_admin_password	пароль администратора (vault)	—
+wordpress_method	wpcli или tarball	wpcli
+php_fpm_version	версия PHP-FPM	8.2
+Секреты хранятся в group_vars/all/vault.yml. Для production файл создаётся и шифруется:
+
+ansible-vault create inventories/prod/group_vars/all/vault.yml
+ansible-vault edit  inventories/prod/group_vars/all/vault.yml
+4. Быстрый старт
+cd ansible-lamp-wordpress
+
+# 1. Подготовка нового чистого хоста (ключ, пользователь admin, sudo, python3)
+TARGET_HOST=1.2.3.4 TARGET_USER=root ./scripts/bootstrap-host.sh
+
+# 2. Прописать адрес хоста в inventories/dev/hosts.yml (ansible_host: 1.2.3.4)
+
+# 3. Проверки
+ansible -i inventories/dev all -m ping
+ansible-playbook -i inventories/dev playbooks/site.yml --syntax-check
+
+# 4. Развёртывание с записью лога
+./scripts/deploy.sh dev site.yml
+#    -> logs/20261029-142311-dev-site.log
+Другие варианты запуска:
+
+# Только стек LAMP, без CMS
+ansible-playbook -i inventories/dev playbooks/lamp.yml
+
+# Только WordPress
+ansible-playbook -i inventories/dev playbooks/wordpress.yml
+
+# Пробный прогон без изменений
+ansible-playbook -i inventories/dev playbooks/site.yml --check --diff
+
+# Прод с расшифровкой vault
+ansible-playbook -i inventories/prod playbooks/site.yml --ask-vault-pass
+# или без интерактивного ввода пароля:
+ansible-playbook -i inventories/prod playbooks/site.yml --vault-password-file ~/.vault_pass
+
+# Отдельные теги
+ansible-playbook -i inventories/dev playbooks/site.yml --tags apache,php
+# Один хост из инвентаря
+ansible-playbook -i inventories/dev playbooks/site.yml --limit wp01
+Подробная пошаговая инструкция — docs/RUNBOOK.md.
+
+5. Запуск без внешней ВМ: целевой хост в WSL2
+Если отдельной Debian-машины нет, целевую систему можно поднять локально в WSL2 (Debian), а Ansible исполнить внутри неё же (ansible_connection: local, привилегии через sudo NOPASSWD). Роли и плейбуки не меняются — добавлен только инвентарь inventories/wsl/ (отключены ufw/fail2ban, сайт доступен как http://localhost).
+
+# PowerShell от администратора: компоненты Windows + Debian
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\enable-wsl2.ps1
+# -> перезагрузка; при необходимости включить SVM в BIOS
+# внутри Debian (первый прогон попросит перезапустить WSL из-за systemd)
+sudo bash "/mnt/d/Новая папка/Ansible/ansible-lamp-wordpress/scripts/setup-wsl-debian.sh"
+
+cd ~/ansible-lamp-wordpress
+ansible-playbook -i inventories/wsl playbooks/site.yml \
+  2>&1 | tee logs/wsl-$(date +%Y%m%d-%H%M%S).log
+Полная инструкция со списком типичных проблем WSL2 — docs/WSL2.md.
+
+6. Что делает плейбук
+common — обновляет apt, ставит базовые пакеты, задаёт timezone/locale, включает ufw (22/80/443) и fail2ban, настраивает unattended-upgrades.
+mysql — ставит MariaDB, пишет 99-ansible-wordpress.cnf (bind-address, utf8mb4, innodb_buffer_pool_size), выставляет пароль root (сохраняя вход по unix-socket), удаляет анонимных пользователей и БД test, создаёт БД wordpress и пользователя wpuser с привилегиями, кладёт креды в /root/.my.cnf, проверяет подключение от имени приложения.
+php_fpm — ставит php8.2-fpm и расширения (mbstring, xml, curl, gd, mysql, zip, intl, bcmath, imagick, opcache), пишет пул www.conf (сокет /run/php/php8.2-fpm.sock, pm), лимиты из 99-ansible-wordpress.ini, проверяет конфигурацию php-fpm8.2 -t.
+apache — включает mpm_event + proxy_fcgi, расшивает mpm_prefork, добавляет hardening-конфиг, настраивает vhost wordpress.conf (DocumentRoot /var/www/wordpress, SetHandler proxy:unix:.../php-fpm.sock, запрет wp-config.php, заголовки безопасности, логи), отключает 000-default, выполняет apachectl configtest и поднимает сервис.
+wordpress — скачивает wp-cli, скачивает ядро WordPress (wp core download), генерирует ключи и соли, кладёт wp-config.php и .htaccess, выставляет права (0640 на wp-config.php), выполняет wp core install, ставит тему/плагины, настраивает системный cron для wp cron event run --due-now, делает HTTP-проверку сайта.
+7. Проверка проекта без целевого хоста
+Проект можно проверить на корректность до подключения к Debian-машине.
+
+Официальными средствами Ansible (на управляющем узле):
+
+ansible-playbook -i inventories/dev playbooks/site.yml --syntax-check
+ansible-lint playbooks/site.yml roles/            # если установлен ansible-lint
+yamllint .                                        # если установлен yamllint
+Офлайн-валидаторы в репозитории (Node.js + js-yaml, работают там, где Ansible не установлен — например на Windows-машине без Python):
+
+npm install js-yaml
+node scripts/validate-yaml.js .        # синтаксис всех *.yml (45 файлов)
+node scripts/validate-structure.js .   # полнота ролей, src у template,
+                                       # совпадение notify с handlers,
+                                       # наличие файлов include_tasks/include_vars,
+                                       # объявление всех используемых переменных
+Те же команды одной строкой: make validate.
+
+Результат текущей версии проекта: Checked: 45, failed: 0 и Объявлено переменных: 180, Проблем не найдено.
+
+Важно про ограничение. Офлайн-валидаторы проверяют только синтаксис YAML и целостность структуры ролей — они не исполняют плейбук. Полноценные ansible-playbook --syntax-check, ansible-lint и сам прогон требуют Python 3 и Ansible на управляющем узле. В этом проекте они выполнены внутри WSL2 (см. раздел 8.1 и docs/WSL2.md); для развёртывания на отдельной ВМ последовательность действий — в docs/RUNBOOK.md.
+
+8. Что проверяется самим плейбуком (самотестирование)
+apachectl configtest — перед запуском Apache;
+php-fpm8.2 -t — после раскатки пула и php.ini;
+mariadb -e 'SELECT VERSION()' и подключение к БД от имени wpuser (community.mysql.mysql_query) — в конце роли mysql;
+wp --version, wp core is-installed, wp plugin list — в роли wordpress;
+HTTP-запрос к http://127.0.0.1/ с ожиданием 200/301/302 — финальная задача;
+deploy.sh после прогона дополнительно выводит состояние всех трёх сервисов (sysvinit-совместимо, работает и там, где нет systemd) и версии Apache/PHP/MariaDB/WordPress в тот же файл лога.
+8.1. Фактический прогон (2026-10-29)
+Среда: Windows 10 21H2 → WSL2 (inbox, ядро 5.10.16) → Debian 12.15, ansible-core 2.19.14, подключение local.
+
+Прогон	Результат
+site.yml на чистую систему	ok=78 changed=26 unreachable=0 failed=0 skipped=26
+повторный прогон (идемпотентность)	ok=71 changed=0 unreachable=0 failed=0 skipped=30
+сайт из Windows	http://localhost → 200, <title>Ansible WSL2 WordPress</title>
+админка	http://localhost/wp-admin → 302 на wp-login.php
+версии	Apache 2.4.68, PHP 8.2.35, MariaDB 10.11.19, WordPress 7.1.4
+Логи: logs/20261029-034046-wsl-site.log (установка) и logs/20261029-034302-wsl-site.log (идемпотентность).
+
+Ключевое ограничение среды: в «встроенном» WSL поколения 2021 года systemd не поднимается как PID 1, поэтому сервисы управляются через sysvinit. Все задачи и handlers используют use: "{{ service_use | default(omit) }}", а в inventories/wsl/group_vars/lamp.yml задано service_use: sysvinit; на обычных Debian-хостах переменная не задаётся и работает автоопределение. Подробности и разбор ошибок — docs/WSL2.md.
+
+9. Идемпотентность
+Повторный запуск site.yml не меняет ничего лишнего: загрузка ядра и установка CMS защищены условиями creates / wp core is-installed, конфиги раскатываются template с сравнением содержимого.
+Соли wp-config.php генерируются один раз и сохраняются в .ansible-salts/ (вне git) — повторные прогоны не сбрасывают сессии пользователей.
+10. Полезные команды диагностики на хосте
+systemctl status apache2 php8.2-fpm mariadb
+tail -f /var/log/apache2/wordpress-access.log /var/log/apache2/wordpress-error.log
+tail -f /var/log/php8.2-fpm-www.log /var/log/mysql/slow.log
+wp core status --path=/var/www/wordpress --allow-root
+mysql -e "SHOW DATABASES; SHOW GRANTS FOR 'wpuser'@'localhost';"
+11. Как заложить в портфолио
+git init && git add . && git commit -m "Ansible LAMP + WordPress".
+Создать репозиторий на GitHub и git push.
+В logs/ оставить реальный лог прогона (deploy.sh его создаёт), закоммитить его принудительно: git add -f logs/<файл>.log.
+В README добавить скриншот главной страницы и /wp-admin развёрнутого сайта.

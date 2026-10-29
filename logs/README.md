@@ -12,6 +12,17 @@ git add -f logs/deploy-20261029.log.example
 git commit -m "Add deployment log"
 ```
 
+Отчётные логи этого проекта лежат в репозитории под фиксированными именами
+(на них есть прямые ссылки в README):
+
+| Файл | Содержание |
+|---|---|
+| `deploy-20261029-wsl-install.log` | `site.yml` на чистую Debian 12.15 в WSL2: `ok=78 changed=26 failed=0` |
+| `deploy-20261029-wsl-idempotency.log` | повторный прогон того же плейбука: `ok=71 changed=0 failed=0` |
+
+Оба файла добавлены в `.gitignore` исключениями по именам, чтобы случайные
+новые прогоны снова не попадали в коммит.
+
 Что должно быть в логе, принимаемом на проверку (всё это `deploy.sh` пишет
 автоматически):
 
@@ -20,8 +31,9 @@ git commit -m "Add deployment log"
 3. вывод `ansible -i inventories/dev lamp -m ping` (`SUCCESS ... "ping": "pong"`);
 4. полный вывод `ansible-playbook` со статистикой `PLAY RECAP`
    (`ok=… changed=… unreachable=0 failed=0 skipped=…`);
-5. блок `SERVICE STATE`: `systemctl is-active apache2 php8.2-fpm mariadb`,
-   версии Apache/PHP/MariaDB, `wp core version`;
+5. блок `SERVICE STATE`: состояние `apache2`, `php8.2-fpm`, `mariadb`
+   (проверка работает и через systemd, и через sysvinit), версии
+   Apache/PHP/MariaDB, `wp core version`;
 6. строка «Команда: ansible-playbook … » с фактическими ключами запуска.
 
 Перед коммитом убедитесь, что в логе нет паролей: задачи с секретами размечены

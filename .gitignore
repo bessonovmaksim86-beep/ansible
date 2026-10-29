@@ -17,6 +17,9 @@ inventories/prod/group_vars/all/vault.yml
 logs/*.log
 !logs/.gitkeep
 !logs/*.example
+# Отчётные логи этого проекта версионируются явно - на них ссылается README.
+!logs/deploy-20261029-wsl-install.log
+!logs/deploy-20261029-wsl-idempotency.log
 
 # --- Артефакты Ansible ---
 .ansible_facts/

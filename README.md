@@ -5,6 +5,11 @@
 Структура рассчитана на повторное использование в других проектах: роли
 самодостаточны, все настройки вынесены в переменные inventory.
 
+**Лог выполнения сценария:**
+[`logs/deploy-20261029-wsl-install.log`](https://github.com/bessonovmaksim86-beep/ansible/blob/main/logs/deploy-20261029-wsl-install.log)
+·
+[повторный прогон на идемпотентность](https://github.com/bessonovmaksim86-beep/ansible/blob/main/logs/deploy-20261029-wsl-idempotency.log)
+
 ## 1. Структура проекта
 
 ```
@@ -263,8 +268,19 @@ ansible-core 2.19.14, подключение `local`.
 | админка | `http://localhost/wp-admin` → 302 на `wp-login.php` |
 | версии | Apache 2.4.68, PHP 8.2.35, MariaDB 10.11.19, WordPress 7.1.4 |
 
-Логи: `logs/20261029-034046-wsl-site.log` (установка) и
-`logs/20261029-034302-wsl-site.log` (идемпотентность).
+Полные логи прогона — в репозитории:
+
+* установка на чистую систему:
+  [`logs/deploy-20261029-wsl-install.log`](https://github.com/bessonovmaksim86-beep/ansible/blob/main/logs/deploy-20261029-wsl-install.log)
+  ([raw](https://raw.githubusercontent.com/bessonovmaksim86-beep/ansible/main/logs/deploy-20261029-wsl-install.log));
+* повторный прогон на идемпотентность:
+  [`logs/deploy-20261029-wsl-idempotency.log`](https://github.com/bessonovmaksim86-beep/ansible/blob/main/logs/deploy-20261029-wsl-idempotency.log)
+  ([raw](https://raw.githubusercontent.com/bessonovmaksim86-beep/ansible/main/logs/deploy-20261029-wsl-idempotency.log)).
+
+Каждый лог начинается с шапки (версия Ansible, дата, команда запуска),
+далее идут `--syntax-check`, `ping`, полный вывод `ansible-playbook` со
+статистикой `PLAY RECAP` и блок `SERVICE STATE` с версиями компонентов —
+всё это автоматически пишет `scripts/deploy.sh`.
 
 Ключевое ограничение среды: в «встроенном» WSL поколения 2021 года systemd не
 поднимается как PID 1, поэтому сервисы управляются через sysvinit. Все задачи
@@ -284,7 +300,7 @@ ansible-core 2.19.14, подключение `local`.
 ## 10. Полезные команды диагностики на хосте
 
 ```bash
-systemctl status apache2 php8.2-fpm mariadb
+systemctl status apache2 php8.2-fpm mariadb    # без systemd: service <имя> status
 tail -f /var/log/apache2/wordpress-access.log /var/log/apache2/wordpress-error.log
 tail -f /var/log/php8.2-fpm-www.log /var/log/mysql/slow.log
 wp core status --path=/var/www/wordpress --allow-root
